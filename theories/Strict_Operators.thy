@@ -7,7 +7,8 @@
 section {* Strict Operators *}
 
 theory Strict_Operators
-imports Main Real Option_Monad
+imports Main Real Option_Monad Option
+  "~~/src/HOL/Library/Option_ord"
 begin
 
 text \<open>We encoded undefined values by virtue of the option monad.\<close>
@@ -31,14 +32,28 @@ text \<open>We also define lifted versions of the comparison operators in a simi
 fun lifted_leq :: "'a::ord option \<Rightarrow> 'a option \<Rightarrow> bool" (infix "\<le>\<^sub>?" 50) where
 "Some x \<le>\<^sub>? Some y \<longleftrightarrow> x \<le> y" |
 "Some x \<le>\<^sub>? None \<longleftrightarrow> False" |
-"None \<le>\<^sub>? Some y \<longleftrightarrow> False" |
+"None \<le>\<^sub>? Some y \<longleftrightarrow> True" |
 "None \<le>\<^sub>? None \<longleftrightarrow> True"
 
 fun lifted_less :: "'a::ord option \<Rightarrow> 'a option \<Rightarrow> bool" (infix "<\<^sub>?" 50) where
 "Some x <\<^sub>? Some y \<longleftrightarrow> x < y" |
 "Some x <\<^sub>? None \<longleftrightarrow> False" |
-"None <\<^sub>? Some y \<longleftrightarrow> False" |
-"None <\<^sub>? None \<longleftrightarrow> True"
+"None <\<^sub>? Some y \<longleftrightarrow> True" |
+"None <\<^sub>? None \<longleftrightarrow> False"
+
+text \<open>The above definitions coincide with the default ordering on @{type option}.\<close>
+
+lemma lifted_leq_equiv_option_ord:
+"op \<le>\<^sub>? = op \<le>"
+apply (rule ext)+
+apply (option_tac)
+done
+
+lemma lifted_less_equiv_option_ord:
+"op <\<^sub>? = op <"
+apply (rule ext)+
+apply (option_tac)
+done
 
 subsection {* Multiplication and Division *}
 

@@ -7,7 +7,7 @@
 section {* The Option Monad: Supplement *}
 
 theory Option_Monad
-imports Eisbach "~~/src/HOL/Library/Monad_Syntax"
+imports "~~/src/HOL/Library/Monad_Syntax" Eisbach
 begin
 
 text \<open>
@@ -23,13 +23,13 @@ text \<open>The \emph{return} function of the option monad (bind is already defi
 definition option_return :: "'a \<Rightarrow> 'a option" ("return") where
 [simp]: "option_return x = Some x"
 
-text \<open>We use the notation @{text "\<bottom>"} in place of @{const None}.\<close>
+text \<open>We use the notation \<open>\<bottom>\<close> in place of @{const None}.\<close>
 
 notation None ("\<bottom>")
 
 subsection {* Proof Support *}
 
-text \<open>Proof support for reasoning about option types.\<close>
+text \<open>Proof support for reasoning about @{type option} types.\<close>
 
 text \<open>Attribute used to collection definitional laws for lifted operators.\<close>
 
