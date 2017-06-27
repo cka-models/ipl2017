@@ -127,7 +127,7 @@ apply (case_tac x; simp)
 apply (case_tac y; simp)
 done
 
-lemma check_overflow_Result (*[simp]*):
+lemma check_overflow_Value (*[simp]*):
 "check_overflow f (Value x) (Value y) =
   (if (f x y) \<le> max_value then Value (f x y) else \<top>)"
 apply (unfold check_overflow_def)

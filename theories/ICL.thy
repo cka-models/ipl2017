@@ -374,7 +374,16 @@ done
 
 lemma section_4_cancal_law1:
 "\<And>(p::nat overflow) q. q \<noteq> 0 \<Longrightarrow> p \<le> (p [*] q) [div] q"
-apply (overflow_tac)
+(* apply (overflow_tac) *)
+(* This runs much fast. Can we convert it into a proof tactic? *)
+apply (atomize (full))?
+apply (simp only: split_overflow)?
+apply (unfold overflow_times_def overflow_divide_def)
+apply (clarsimp)
+apply (unfold check_overflow_Value)
+apply (case_tac "p * q \<le> max_value"; clarsimp?)
+apply (unfold check_overflow_Value)
+apply (case_tac "p * q div q \<le> max_value"; clarsimp?)
 done
 
 interpretation icl_mult_trunc_div_nat_overflow:
@@ -390,11 +399,11 @@ apply (thin_tac "s \<noteq> Value 0")
 apply (induct_tac p; induct_tac r; induct_tac q; induct_tac s)
 apply (simp_all)
 apply (rename_tac p r q s)
-apply (unfold check_overflow_Result)
+apply (unfold check_overflow_Value)
 apply (case_tac "p div r \<le> max_value"; case_tac "q div s \<le> max_value";
        case_tac "p * q \<le> max_value"; case_tac "r * s \<le> max_value")
 apply (simp_all)
-apply (unfold check_overflow_Result)
+apply (unfold check_overflow_Value)
 apply (simp_all)
 -- {* Subgoal 1 *}
 using icl_mult_trunc_div_nat.interchange_law order_trans apply (blast)
