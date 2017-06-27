@@ -10,6 +10,8 @@ theory ICL
 imports Main Real Strict_Operators Overflow_Monad
 begin
 
+declare [[syntax_ambiguity_warning = false]]
+
 text \<open>We are going to use the \<open>|\<close> symbol for parallel composition.\<close>
 
 no_notation (ASCII)
@@ -350,8 +352,6 @@ subsubsection \<open>8. Computer arithmetic: Overflow (\<open>\<top>\<close>).\<
 
 type_synonym 'a comparith = "('a overflow) option"
 
-declare [[syntax_ambiguity_warning = false]]
-
 definition comparith_times ::
   "'a::{times,linorder} comparith \<Rightarrow> 'a comparith \<Rightarrow> 'a comparith"
     (infixl "*\<^sub>c" 70) where
@@ -360,43 +360,22 @@ definition comparith_times ::
 definition comparith_divide ::
   "'a::{zero,divide,linorder} comparith \<Rightarrow> 'a comparith \<Rightarrow> 'a comparith"
     (infixl "'/\<^sub>c" 70) where
-[option_monad_ops]: "x /\<^sub>c y =
-  do {x' \<leftarrow> x; y' \<leftarrow> y; if y' \<noteq> Result 0 then return (x' [div] y') else \<bottom>}"
-
-lemma check_overflow_simps [simp]:
-"check_overflow f x \<top> = \<top>"
-"check_overflow f \<top> y = \<top>"
-apply (unfold check_overflow_def)
-apply (case_tac x; simp)
-apply (case_tac y; simp)
-done
-
-lemma check_overflow_Result:
-"check_overflow f (Result x) (Result y) =
-  (if (f x y) \<le> max_value then Result (f x y) else \<top>)"
-apply (unfold check_overflow_def)
-apply (case_tac "(f x y) \<le> max_value")
-apply (simp_all)
-done
+[option_monad_ops]:
+"x /\<^sub>c y = do {x' \<leftarrow> x; y' \<leftarrow> y; if y' \<noteq> Value 0 then return (x' [div] y') else \<bottom>}"
 
 lemma check_overflow_neq_Result_0:
-"(x::nat overflow) \<noteq> Result 0 \<Longrightarrow>
- (y::nat overflow) \<noteq> Result 0 \<Longrightarrow>
- (check_overflow op * x y \<noteq> Result 0)"
+"(x::nat overflow) \<noteq> Value 0 \<Longrightarrow>
+ (y::nat overflow) \<noteq> Value 0 \<Longrightarrow>
+ (check_overflow op * x y \<noteq> Value 0)"
 apply (unfold check_overflow_def)
 apply (case_tac x; case_tac y)
 apply (simp_all)
 done
 
 lemma section_4_cancal_law1:
-"p \<le> (p [*] q) [div] q"
-apply (unfold overflow_times_def overflow_divide_def)
-apply (induct_tac p; induct_tac q)
-apply (simp_all)
-apply (rename_tac p q)
-apply (simp add: check_overflow_Result)
-apply (clarsimp)
-oops
+"\<And>(p::nat overflow) q. q \<noteq> 0 \<Longrightarrow> p \<le> (p [*] q) [div] q"
+apply (overflow_tac)
+done
 
 interpretation icl_mult_trunc_div_nat_overflow:
   iclaw "TYPE(nat comparith)" "op \<le>" "op *\<^sub>c" "op /\<^sub>c"
@@ -405,8 +384,8 @@ apply (option_tac)
 apply (unfold overflow_times_def overflow_divide_def)
 apply (simp add: check_overflow_neq_Result_0)
 apply (clarify)
-apply (thin_tac "r \<noteq> Result 0")
-apply (thin_tac "s \<noteq> Result 0")
+apply (thin_tac "r \<noteq> Value 0")
+apply (thin_tac "s \<noteq> Value 0")
 (* apply (fold overflow_times_def overflow_divide_def) *)
 apply (induct_tac p; induct_tac r; induct_tac q; induct_tac s)
 apply (simp_all)

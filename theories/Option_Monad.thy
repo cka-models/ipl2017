@@ -13,17 +13,17 @@ begin
 text \<open>
   While Isabelle/HOL already provides an encoding of the @{type option} type
   and monad, we include a few supplementary definitions and tactics here that
-  are useful for convenience and automatic proof.
+  are useful for readability and automatic proof.
 \<close>
 
 subsection {* Syntax and Definitions *}
 
-text \<open>The \emph{return} function of the option monad (bind is already defined).\<close>
+text \<open>The \<open>return\<close> function of the option monad (bind is already defined).\<close>
 
 definition option_return :: "'a \<Rightarrow> 'a option" ("return") where
 [simp]: "option_return x = Some x"
 
-text \<open>We use the notation \<open>\<bottom>\<close> in place of @{const None}.\<close>
+text \<open>We introduce the notation \<open>\<bottom>\<close> for @{const None}.\<close>
 
 notation None ("\<bottom>")
 
@@ -36,10 +36,11 @@ text \<open>Attribute used to collection definitional laws for lifted operators.
 named_theorems option_monad_ops
   "definitial laws for lifted operators into the option monad"
 
-text \<open>Tactic that performs automatic case splittings for the @{type option} type.\<close>
+text \<open>Tactic that facilitates proofs about the @{type option} type.\<close>
 
 lemmas split_option =
-  split_option_all split_option_ex
+  split_option_all
+  split_option_ex
 
 method option_tac = (
   (atomize (full))?,
