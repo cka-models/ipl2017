@@ -1,13 +1,15 @@
 (******************************************************************************)
-(* Project: The Interchange Law in Application to Concurrent Programming      *)
+(* Submission: "The Interchange Law: A Principle of Concurrent Programming"   *)
+(* Authors: Tony Hoare, Bernard Möller, Georg Struth, and Frank Zeyda         *)
 (* File: Option_Monad.thy                                                     *)
-(* Authors: Frank Zeyda, Tony Hoare and Georg Struth                          *)
 (******************************************************************************)
 
 section {* The Option Monad: Supplement *}
 
 theory Option_Monad
-imports "~~/src/HOL/Library/Monad_Syntax" Eisbach
+imports Eisbach
+  "~~/src/HOL/Library/Monad_Syntax"
+  "~~/src/HOL/Library/Option_ord"
 begin
 
 text \<open>
@@ -18,14 +20,30 @@ text \<open>
 
 subsection {* Syntax and Definitions *}
 
-text \<open>The \<open>return\<close> function of the option monad (bind is already defined).\<close>
+text \<open>The \<open>return\<close> function of the option monad. (Bind is already defined.)\<close>
 
 definition option_return :: "'a \<Rightarrow> 'a option" ("return") where
 [simp]: "option_return x = Some x"
 
-text \<open>We introduce the notation \<open>\<bottom>\<close> for @{const None}.\<close>
+text \<open>We introduce the notation \<open>\<bottom>\<close> for the constructor @{const None}.\<close>
 
 notation None ("\<bottom>")
+
+subsection {* Instantiations *}
+
+instantiation option :: (zero) zero
+begin
+definition zero_option :: "'a option" where
+[simp]: "zero_option = Some 0"
+instance ..
+end
+
+instantiation option :: (one) one
+begin
+definition one_option :: "'a option" where
+[simp]: "one_option = Some 1"
+instance ..
+end
 
 subsection {* Proof Support *}
 
@@ -45,5 +63,5 @@ lemmas split_option =
 method option_tac = (
   (atomize (full))?,
   ((unfold option_monad_ops option_return_def)?) [1],
-  (simp add: split_option)?)
+  (simp add: split_option zero_option_def one_option_def)?)
 end

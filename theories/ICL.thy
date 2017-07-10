@@ -1,7 +1,7 @@
 (******************************************************************************)
-(* Project: The Interchange Law in Application to Concurrent Programming      *)
+(* Submission: "The Interchange Law: A Principle of Concurrent Programming"   *)
+(* Authors: Tony Hoare, Bernard Möller, Georg Struth, and Frank Zeyda         *)
 (* File: ICL.thy                                                              *)
-(* Authors: Frank Zeyda, Tony Hoare and Georg Struth                          *)
 (******************************************************************************)
 
 section {* Examples of Applications *}
@@ -10,32 +10,36 @@ theory ICL
 imports Main Real Strict_Operators Overflow_Monad
 begin
 
-declare [[syntax_ambiguity_warning = false]]
+declare [[syntax_ambiguity_warning=false]]
 
 text \<open>We are going to use the \<open>|\<close> symbol for parallel composition.\<close>
 
 no_notation (ASCII)
   disj  (infixr "|" 30)
 
+text \<open>Type synonym for a binary operator on a type @{typ "'a"}.\<close>
+
+type_synonym 'a binop = "'a \<Rightarrow> 'a \<Rightarrow> 'a"
+
 subsection {* Locale Definitions *}
 
 text \<open>
   In this section, we encapsulate the interchange law as an Isabelle locale.
   This gives us an elegant way to formulate conjectures that particular types,
-  orderings, and operator triples fulfill the interchange law. It also aids in
+  orderings, and operator pairs fulfill the interchange law. It also aids in
   structuring proofs. We define two locales here:~one to introduce the notion
-  of order (which has to be a preorder); and another locale that extends the
-  former and introduces both operators for the interchange law to hold.
+  of order (which has to be a preorder) and another, extending the former, to
+  introduce both operators and interchange law as an assumption.
 \<close>
 
 subsubsection {* Locale: @{text preorder} *}
 
 text \<open>
-  The underlying relation has to be a preorder. Our definition of preorder
-  is, however, deliberately weaker than Isabelle/HOL's definition as per the
-  @{locale ordering} locale. This is because we do not require the assumption
-  @{text "a \<^bold>< b \<longleftrightarrow> a \<^bold>\<le> b \<and> a \<noteq> b"}. Moreover, for interpretation we only
-  have to provide the @{text "\<le>"} operator in our treatment and not \<open><\<close> also.
+  The underlying relation has to be a preorder. Our definition of preorder is,
+  however, deliberately weaker than Isabelle/HOL's definition captured by the
+  @{locale ordering} locale. That is, we shall not require the assumption
+  @{thm ordering.strict_iff_order}. Moreover, for interpretation we only have
+  to provide the @{text "\<le>"} operator in our treatment and not \<open><\<close> as well.
 \<close>
 
 locale preorder =
@@ -45,12 +49,12 @@ locale preorder =
   assumes trans: "x \<^bold>\<le> y \<Longrightarrow> y \<^bold>\<le> z \<Longrightarrow> x \<^bold>\<le> z"
 begin
 
-text \<open>Equivalence of elements is defined as mutual less-or-equals.\<close>
+text \<open>Equivalence of elements is defined in terms of mutual less-or-equals.\<close>
 
 definition equiv :: "'a \<Rightarrow> 'a \<Rightarrow> bool" (infix "\<^bold>\<equiv>" 50) where
 "x \<^bold>\<equiv> y \<longleftrightarrow> x \<^bold>\<le> y \<and> y \<^bold>\<le> x"
 
-text \<open>We prove that \<open>\<equiv>\<close> is an equivalence relation.\<close>
+text \<open>We prove that \<open>\<equiv>\<close> is indeed an equivalence relation.\<close>
 
 lemma equiv_refl:
 "x \<^bold>\<equiv> x"
@@ -74,7 +78,7 @@ using local.trans apply (blast)
 using local.trans apply (blast)
 done
 
-text \<open>The following anti-symmetry law holds (by definition) as well.\<close>
+text \<open>The following anti-symmetry law holds by definition of equivalence.\<close>
 
 lemma antisym:
 "x \<^bold>\<le> y \<Longrightarrow> y \<^bold>\<le> x \<Longrightarrow> x \<^bold>\<equiv> y"
@@ -84,9 +88,10 @@ done
 end
 
 text \<open>
-  Next, we prove several instantiations of @{locale ordering}s used later on.
-  Due to the structuring of locales, we will be able to use those lemmas in
-  instantiations proofs of the \<open>iclaw\<close> locales which we define in the sequel.
+  Next, we prove several useful interpretations of @{locale preorder}s. Due to
+  the structuring mechanism of (sub)locales, we are later able to reuse those
+  instantiation proofs i.e.~when interpreting of the \<open>iclaw\<close> locale defined in
+  the sequel.
 \<close>
 
 interpretation preorder_eq:
@@ -126,16 +131,16 @@ declare preorder_option_leq.preorder_axioms [simp]
 subsubsection {* Locale: @{text iclaw} *}
 
 text \<open>
-  We are now able to define the @{text "iclaw"} locale as an extension of the
-  @{text "preorder"} locale. The interchange law is encapsulated as the single
+  We are ready now to define the @{text iclaw} locale as an extension of the
+  @{text preorder} locale. The interchange law is encapsulated as the single
   assumption of that locale. Instantiations will have to prove this assumption
-  and thereby show that the interchange law holds for the respective type,
-  relation and sequence/parallel operator pair.
+  and thereby show that the interchange law holds for a particular given type,
+  ordering relation, and binary operator pair.
 \<close>
 
 locale iclaw = preorder +
-  fixes seq :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" (infixr ";" 110)
-  fixes par :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" (infixr "|" 100)
+  fixes seq_op :: "'a binop" (infixr ";" 110)
+  fixes par_op :: "'a binop" (infixr "|" 100)
 -- \<open>1. Note: the general shape of the interchange law.\<close>
   assumes interchange_law: "(p | r) ; (q | s) \<^bold>\<le> (p ; q) | (r ; s)"
 
@@ -146,9 +151,11 @@ text \<open>
   in \textbf{Part 1} of the paper.
 \<close>
 
-subsubsection \<open>2. Arithmetic: addition (\<open>+\<close>) and subtraction (\<open>-\<close>) of numbers.\<close>
+subsubsection \<open>Arithmetic: addition (\<open>+\<close>) and subtraction (\<open>-\<close>) of numbers.\<close>
 
-text \<open>This is proved for the types @{type nat}, @{type int}, @{type rat} and @{type real} below.\<close>
+text \<open>This is proved for the types @{type int}, @{type rat} and @{type real}.\<close>
+
+-- \<open>Note that the law does not hold for type @{type nat}.\<close>
 
 interpretation icl_plus_minus_nat:
   iclaw "TYPE(nat)" "op =" "op +" "op -"
@@ -174,48 +181,74 @@ apply (unfold_locales)
 apply (linarith)
 done
 
-subsubsection \<open>3. Arithmetic: multiplication (\<open>x\<close>) and division (\<open>/\<close>).\<close>
+subsubsection \<open>Arithmetic: multiplication (\<open>x\<close>) and division (\<open>/\<close>).\<close>
 
 text \<open>This is proved for the types @{type rat}, @{type real}, and option types thereof.\<close>
 
 interpretation icl_mult_div_rat:
   iclaw "TYPE(rat)" "op =" "op *" "op /"
 apply (unfold_locales)
-apply (auto)
+apply (simp)
 done
 
 interpretation icl_mult_div_real:
   iclaw "TYPE(real)" "op =" "op *" "op /"
 apply (unfold_locales)
-apply (auto)
+apply (simp)
 done
 
-text \<open>The @{method option_tac} tactic makes the two proofs below very easy!\<close>
+text \<open>The @{method option_tac} tactic makes the two proofs below very easy.\<close>
 
 interpretation icl_mult_div_rat_strong:
   iclaw "TYPE(rat option)" "op =\<^sub>?" "op *\<^sub>?" "op /\<^sub>?"
 apply (unfold_locales)
-apply (option_tac)+
+apply (option_tac)
 done
 
 interpretation icl_mult_div_real_strong:
   iclaw "TYPE(real option)" "op =\<^sub>?" "op *\<^sub>?" "op /\<^sub>?"
 apply (unfold_locales)
-apply (option_tac)+
+apply (option_tac)
 done
 
-subsubsection \<open>4. Natural numbers: multiplication (\<open>x\<close>) and truncated division (\<open>-:-\<close>)\<close>
+text \<open>Theorem 1 is true for any @{class field} in general, ...\<close>
 
-text \<open>We note that the operator \<open>div\<close> is used in Isabelle for truncated division.\<close>
+lemma Theorem1_field:
+fixes p :: "'a::field"
+fixes q :: "'a::field"
+shows "(p / q) * q = (p * q) / q"
+using times_divide_eq_left by (blast)
 
-lemma trunc_div_lemma:
+text \<open>... and @{type rat}ional and @{type real} numbers in particular.\<close>
+
+lemma Theorem1_rat:
+fixes p :: "rat"
+fixes q :: "rat"
+shows "(p / q) * q = (p * q) / q"
+apply (rule Theorem1_field)
+done
+
+lemma Theorem1_real:
+fixes p :: "real"
+fixes q :: "real"
+shows "(p / q) * q = (p * q) / q"
+apply (rule Theorem1_field)
+done
+
+subsubsection \<open>Natural numbers: multiplication (\<open>x\<close>) and truncated division (\<open>-:-\<close>)\<close>
+
+text \<open>We note that @{term "x div y"} is used in Isabelle for truncated division.\<close>
+
+text \<open>We first prove the lemma below which is also described in the paper.\<close>
+
+lemma trunc_div_mult_leq:
 fixes p :: "nat"
 fixes q :: "nat"
--- {* \<open>assumes "q > 0"\<close> not needed! *}
-shows "(p div q)*q \<le> (p*q) div q"
+-- {* The assumption \<open>q > 0\<close> is not needed because \<open>x div 0 = 0\<close>. *}
+shows "(p div q) * q \<le> (p * q) div q"
 apply (case_tac "q > 0")
 apply (metis div_mult_self_is_m mult.commute split_div_lemma)
-apply (auto)
+apply (simp)
 done
 
 text \<open>
@@ -231,7 +264,7 @@ apply (case_tac "s = 0"; simp_all)
 apply (subgoal_tac "(p div r) * (q div s) * (r * s) \<le> p * q")
 apply (metis div_le_mono div_mult_self_is_m nat_0_less_mult_iff)
 apply (unfold semiring_normalization_rules(13))
-apply (metis div_mult_self_is_m mult_le_mono trunc_div_lemma)
+apply (metis div_mult_self_is_m mult_le_mono trunc_div_mult_leq)
 done
 
 interpretation icl_mult_trunc_div_nat_strong:
@@ -242,10 +275,12 @@ apply (safe, clarsimp?)
 apply (subgoal_tac "(p div r) * (q div s) * (r * s) \<le> p * q")
 apply (metis div_le_mono div_mult_self_is_m nat_0_less_mult_iff)
 apply (unfold semiring_normalization_rules(13))
-apply (metis div_mult_self_is_m mult_le_mono trunc_div_lemma)
+apply (metis div_mult_self_is_m mult_le_mono trunc_div_mult_leq)
 done
 
-subsubsection \<open>5. Propositional calculus: conjunction (\<open>\<and>\<close>) and implication (\<open>\<Rightarrow>\<close>).\<close>
+subsubsection \<open>Propositional calculus: conjunction (\<open>\<and>\<close>) and implication (\<open>\<Rightarrow>\<close>).\<close>
+
+text \<open>TO: Implication \<open>p \<Rightarrow> q\<close> is defined in the usual way as \<open>\<not>p \<or> q\<close>.\<close>
 
 text \<open>We can easily verify the definition of implication.\<close>
 
@@ -264,22 +299,25 @@ apply (unfold_locales)
 apply (auto)
 done
 
-subsubsection \<open>6. Boolean Algebra: conjunction (\<open>\<and>\<close>) and disjunction (\<open>\<or>\<close>).\<close>
+subsubsection \<open>Boolean Algebra: conjunction (\<open>\<and>\<close>) and disjunction (\<open>\<or>\<close>).\<close>
 
-text \<open>Numerical value of a boolean and the thereby induced ordering.\<close>
+text \<open>Numerical value of a boolean value.\<close>
 
 definition valOfBool :: "bool \<Rightarrow> nat" where
 "valOfBool p = (if p then 1 else 0)"
 
+text \<open>Order on boolean values induced by the above.\<close>
+
 definition numOrdBool :: "bool \<Rightarrow> bool \<Rightarrow> bool" (infix "\<turnstile>" 50) where
 "numOrdBool p q \<longleftrightarrow> (valOfBool p) \<le> (valOfBool q)"
 
-text \<open>We can easily show that the numerical order defined above is implication.\<close>
+text \<open>We can easily show that the numerical order is just implication.\<close>
 
 lemma numOrdBool_is_imp [simp]:
 "(numOrdBool p q) = (p \<longrightarrow> q)"
 apply (unfold numOrdBool_def valOfBool_def)
-apply (clarsimp)
+apply (induct_tac p; induct_tac q)
+apply (simp_all)
 done
 
 text \<open>Note that `@{text ";"}' is disjunction and `@{text "|"}' is conjunction.\<close>
@@ -291,183 +329,213 @@ apply (unfold numOrdBool_is_imp)
 apply (auto)
 done
 
-subsubsection \<open>7. Self-interchanging operators: \<open>+\<close>, \<open>*\<close>, \<open>\<or>\<close>, \<open>\<and>\<close>.\<close>
+subsubsection \<open>Self-interchanging operators: \<open>+\<close>, \<open>*\<close>, \<open>\<or>\<close>, \<open>\<and>\<close>.\<close>
+
+text \<open>For convenience, we define a locale for self-interchanging operators.\<close>
+
+locale self_iclaw =
+  iclaw "type" "op =" "self_op" "self_op"
+  for type :: "'a itself" and self_op  :: "'a binop"
 
 text \<open>
-  We introduce individual locales to capture associativity, commutativity and
-  idempotence of a binary operator.
+  We next introduce (separate) locales to capture associativity, commutativity
+  and existence of units for some binary operator. We use a bold circle (\<open>\<^bold>\<circ>\<close>)
+  not to clash with the Isabelle/HOL's symbol (\<open>\<circ>\<close>) for functional composition.
 \<close>
 
-no_notation comp (infixl "\<circ>" 55)
+locale associative =
+  fixes operator :: "'a binop" (infix "\<^bold>\<circ>" 100)
+  assumes assoc: "x \<^bold>\<circ> (y \<^bold>\<circ> z) = (x \<^bold>\<circ> y) \<^bold>\<circ> z"
 
-locale assoc =
-  fixes operator :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" (infix "\<circ>" 100)
-  assumes assoc: "x \<circ> (y \<circ> z) = (x \<circ> y) \<circ> z"
+locale commutative =
+  fixes operator :: "'a binop" (infix "\<^bold>\<circ>" 100)
+  assumes comm: "x \<^bold>\<circ> y = y \<^bold>\<circ> x"
 
-locale comm =
-  fixes operator :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" (infix "\<circ>" 100)
-  assumes comm: "x \<circ> y = y \<circ> x"
-
-locale unit =
-  fixes operator :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" (infix "\<circ>" 100)
+locale has_unit =
+  fixes operator :: "'a binop" (infix "\<^bold>\<circ>" 100)
   fixes unit :: "'a" ("\<^bold>1")
-  assumes left_unit [simp]: "\<^bold>1 \<circ> x = x"
-  assumes right_unit [simp]: "x \<circ> \<^bold>1 = x"
+  assumes left_unit [simp]: "\<^bold>1 \<^bold>\<circ> x = x"
+  assumes right_unit [simp]: "x \<^bold>\<circ> \<^bold>1 = x"
 
-declare unit.left_unit [simp]
-declare unit.right_unit [simp]
-
-lemma assoc_comm_imp_iclaw:
-"(assoc bop \<and> comm bop) \<Longrightarrow> (iclaw (op =) bop bop)"
-apply (unfold iclaw_def iclaw_axioms_def)
-apply (clarsimp)
-apply (unfold assoc_def comm_def iclaw_def)
-apply (clarsimp)
+lemma assoc_comm_imp_self_iclaw:
+"(associative bop \<and> commutative bop) \<Longrightarrow> (self_iclaw bop)"
+apply (standard)
+apply (unfold associative_def commutative_def)
+apply (clarify)
+apply (auto)
 done
 
-lemma iclaw_unit_imp_assoc_comm:
-"(iclaw (op =) bop bop) \<and> (unit bop one) \<Longrightarrow> (assoc bop \<and> comm bop)"
-apply (unfold iclaw_def iclaw_axioms_def)
+lemma self_iclaw_unit_imp_assoc:
+"(self_iclaw bop) \<and> (has_unit bop one) \<Longrightarrow> associative bop"
+apply (standard)
+apply (unfold self_iclaw_def iclaw_def iclaw_axioms_def)
 apply (clarsimp)
-apply (rule conjI)
--- {* Subgoal 1 *}
-apply (unfold assoc_def)
-apply (clarify)
 apply (drule_tac x = "x" in spec)
 apply (drule_tac x = "one" in spec)
 apply (drule_tac x = "y" in spec)
 apply (drule_tac x = "z" in spec)
+apply (simp add: has_unit_def)
+done
+
+lemma self_iclaw_unit_imp_comm:
+"(self_iclaw bop) \<and> (has_unit bop one) \<Longrightarrow> commutative bop"
+apply (standard)
+apply (unfold self_iclaw_def iclaw_def iclaw_axioms_def)
 apply (clarsimp)
--- {* Subgoal 1 *}
-apply (unfold comm_def)
-apply (clarify)
 apply (drule_tac x = "one" in spec)
 apply (drule_tac x = "x" in spec)
 apply (drule_tac x = "y" in spec)
 apply (drule_tac x = "one" in spec)
-apply (clarsimp)
+apply (simp add: has_unit_def)
 done
 
-subsubsection \<open>8. Computer arithmetic: Overflow (\<open>\<top>\<close>).\<close>
+text \<open>Lastly, we prove the self-interchange law for the four operators.\<close>
 
-type_synonym 'a comparith = "('a overflow) option"
-
-definition comparith_times ::
-  "'a::{times,linorder} comparith \<Rightarrow> 'a comparith \<Rightarrow> 'a comparith"
-    (infixl "*\<^sub>c" 70) where
-[option_monad_ops]: "x *\<^sub>c y = do {x' \<leftarrow> x; y' \<leftarrow> y; return (x' [*] y')}"
-
-definition comparith_divide ::
-  "'a::{zero,divide,linorder} comparith \<Rightarrow> 'a comparith \<Rightarrow> 'a comparith"
-    (infixl "'/\<^sub>c" 70) where
-[option_monad_ops]:
-"x /\<^sub>c y = do {x' \<leftarrow> x; y' \<leftarrow> y; if y' \<noteq> Value 0 then return (x' [div] y') else \<bottom>}"
-
-lemma check_overflow_neq_Result_0:
-"(x::nat overflow) \<noteq> Value 0 \<Longrightarrow>
- (y::nat overflow) \<noteq> Value 0 \<Longrightarrow>
- (check_overflow op * x y \<noteq> Value 0)"
-apply (unfold check_overflow_def)
-apply (case_tac x; case_tac y)
-apply (simp_all)
-done
-
-lemma section_4_cancal_law1:
-"\<And>(p::nat overflow) q. q \<noteq> 0 \<Longrightarrow> p \<le> (p [*] q) [div] q"
-(* apply (overflow_tac) *)
-(* This runs much fast. Can we convert it into a proof tactic? *)
-apply (atomize (full))?
-apply (simp only: split_overflow)?
-apply (unfold overflow_times_def overflow_divide_def)
-apply (clarsimp)
-apply (unfold check_overflow_Value)
-apply (case_tac "p * q \<le> max_value"; clarsimp?)
-apply (unfold check_overflow_Value)
-apply (case_tac "p * q div q \<le> max_value"; clarsimp?)
-done
-
-interpretation icl_mult_trunc_div_nat_overflow:
-  iclaw "TYPE(nat comparith)" "op \<le>" "op *\<^sub>c" "op /\<^sub>c"
-apply (unfold_locales)
-apply (option_tac)
-apply (unfold overflow_times_def overflow_divide_def)
-apply (simp add: check_overflow_neq_Result_0)
-apply (clarify)
-apply (thin_tac "r \<noteq> Value 0")
-apply (thin_tac "s \<noteq> Value 0")
-(* apply (fold overflow_times_def overflow_divide_def) *)
-apply (induct_tac p; induct_tac r; induct_tac q; induct_tac s)
-apply (simp_all)
-apply (rename_tac p r q s)
-apply (unfold check_overflow_Value)
-apply (case_tac "p div r \<le> max_value"; case_tac "q div s \<le> max_value";
-       case_tac "p * q \<le> max_value"; case_tac "r * s \<le> max_value")
-apply (simp_all)
-apply (unfold check_overflow_Value)
-apply (simp_all)
+interpretation self_icl_plus:
+  self_iclaw "TYPE('a::comm_monoid_add)" "op +"
+apply (rule assoc_comm_imp_self_iclaw)
+apply (rule conjI)
 -- {* Subgoal 1 *}
-using icl_mult_trunc_div_nat.interchange_law order_trans apply (blast)
+apply (unfold associative_def)
+apply (simp add: add.assoc)
 -- {* Subgoal 2 *}
-apply (erule_tac Q = "\<not> q div s \<le> max_value" in contrapos_pp)
-apply (clarsimp)
--- {* We can see that this is not provable if p = 0, r = 1 and s = 1. *}
-(* apply (subgoal_tac "p = 0 \<and> r = 1 \<and> s = 1"; clarsimp) *)
-apply (subgoal_tac "p \<noteq> 0")
-apply (metis div_le_dividend less_le_trans nonzero_mult_div_cancel_left not_le)
-defer
--- {* Subgoal 3 *}
-apply (erule_tac Q = "\<not> p div r \<le> max_value" in contrapos_pp)
-apply (clarsimp)
-apply (subgoal_tac "q \<noteq> 0")
-apply (metis div_le_dividend dual_order.trans nonzero_mult_div_cancel_right)
-defer
--- {* Subgoal 4 *}
-apply (metis div_le_dividend mult_zero_right nonzero_mult_div_cancel_right order_trans)
-oops
+apply (unfold commutative_def)
+apply (simp add: add.commute)
+done
 
-(*
+interpretation self_icl_mult:
+  self_iclaw "TYPE('a::comm_monoid_mult)" "op *"
+apply (rule assoc_comm_imp_self_iclaw)
+apply (rule conjI)
+-- {* Subgoal 1 *}
+apply (unfold associative_def)
+apply (simp add: mult.assoc)
+-- {* Subgoal 2 *}
+apply (unfold commutative_def)
+apply (simp add: mult.commute)
+done
+
+interpretation self_icl_conj:
+  self_iclaw "TYPE(bool)" "op \<and>"
+apply (rule assoc_comm_imp_self_iclaw)
+apply (rule conjI)
+-- {* Subgoal 1 *}
+apply (standard) [1]
+apply (blast)
+-- {* Subgoal 2 *}
+apply (standard) [1]
+apply (blast)
+done
+
+interpretation self_icl_disj:
+  self_iclaw "TYPE(bool)" "op \<or>"
+apply (rule assoc_comm_imp_self_iclaw)
+apply (rule conjI)
+-- {* Subgoal 1 *}
+apply (standard) [1]
+apply (blast)
+-- {* Subgoal 2 *}
+apply (standard) [1]
+apply (blast)
+done
+
+subsubsection \<open>Computer arithmetic: Overflow (\<open>\<top>\<close>).\<close>
+
+default_sort machine_number
+
 text \<open>
-  The bottom element \<open>\<bottom>\<close> is already introduced into the algebra by virtue of
-  the option type. So we only have to consider the top element, signifying an
-  overflow has occurred. Since operators are likewise strict wrt \<open>\<top>\<close>, we can
-  use a nested option type to model overflow. As the battle of the giants is
-  resolved in favour of \<open>\<bottom>\<close>, the outer @{const None} corresponds to \<open>\<bottom>\<close> and
-  the inner @{const None} (i.e.~@{term "Some None"} to \<open>\<top>\<close>.
+  To encode the outcome of a computer calculation, we firstly introduce a new
+  type \<open>'a comparith\<close>. Such is an @{type option} type over the machine number
+  type @{typ "'a machine_number_ext"}. The latter is introduced in the theory
+  @{theory Overflow_Monad}. The order of nesting indeed ensures that we obtain
+  the correct strictness properties with respect to \<open>\<bottom>\<close> and \<open>\<top>\<close>, that is \<open>\<bottom>\<close>
+  dominates over \<open>\<top>\<close>.
 \<close>
 
-definition top :: "'a option option" ("\<top>") where
-"\<top> = Some \<bottom>"
+type_synonym 'a comparith = "('a machine_number_ext) option"
 
-type_synonym 'a overflow = "'a option option"
+text \<open>The definition operators for the @{type comparith} type follows next.\<close>
 
-text \<open>Lifting has to be redefined...!\<close>
+abbreviation comparith_top :: "'a comparith" ("\<top>") where
+"comparith_top \<equiv> Some \<top>"
 
-definition overflow_times ::
-  "'a::times overflow \<Rightarrow> 'a overflow \<Rightarrow> 'a overflow" (infixl "[*]" 70) where
-"x [*] y = do {x' \<leftarrow> x; y' \<leftarrow> y; return (x' *\<^sub>? y')}"
+definition comparith_times ::
+  "'a::{times,machine_number} comparith binop" (infixl "*\<^sub>M" 70) where
+[option_monad_ops]: "x *\<^sub>M y = do {x' \<leftarrow> x; y' \<leftarrow> y; return (x' [*] y')}"
 
-definition overflow_divide ::
-  "'a::{divide,zero} overflow \<Rightarrow> 'a overflow \<Rightarrow> 'a overflow" (infixl "'['/]" 70) where
-"x [/] y = do {x' \<leftarrow> x; y' \<leftarrow> y; if y' \<noteq> Some 0 then return (x' div\<^sub>? y') else \<bottom>}"
+definition comparith_divide ::
+  "'a::{zero,divide,machine_number} comparith binop" (infixl "'/\<^sub>M" 70) where
+[option_monad_ops]:
+"x /\<^sub>M y = do {x' \<leftarrow> x; y' \<leftarrow> y; if y' \<noteq> 0 then return (x' [div] y') else \<bottom>}"
 
-text \<open>We configure the above operators to be unfolded by @{method option_tac}.\<close>
+paragraph \<open>Cancellation Laws\<close>
 
-declare overflow_times_def [option_monad_ops]
-declare overflow_divide_def [option_monad_ops]
+lemma Section_8_cancellation_law1a:
+"\<And> (p::nat machine_number_ext) (q::nat machine_number_ext).
+  q \<noteq> 0 \<Longrightarrow> p \<le> (p [*] q) [div] q"
+apply (overflow_tac)
+done
+
+lemma Section_8_cancellation_law1b:
+"\<And>(p::nat comparith) (q::nat comparith).
+  q \<noteq> 0 \<Longrightarrow> q \<noteq> \<bottom> \<Longrightarrow> p \<le> (p *\<^sub>M q) /\<^sub>M q"
+apply (option_tac)
+apply (overflow_tac)
+done
+
+lemma Section_8_cancellation_law2a:
+"\<And>(p::nat option) (q::nat option).
+  (p /\<^sub>? q) *\<^sub>? q \<le> p"
+apply (option_tac)
+apply (metis mult.commute split_div_lemma)
+done
+
+lemma Section_8_cancellation_law2b:
+"\<And>(p::nat comparith) (q::nat comparith).
+  q \<noteq> \<top> \<Longrightarrow> (p /\<^sub>M q) *\<^sub>M q \<le> p"
+apply (option_tac)
+apply (overflow_tac)
+apply (transfer)
+apply (clarsimp; safe)
+-- {* Subgoal 1 *}
+apply (metis mult.commute split_div_lemma)
+-- {* Subgoal 2 *}
+using div_le_dividend dual_order.trans apply (blast)
+-- {* Subgoal 3 *}
+apply (erule contrapos_np)
+apply (clarsimp)
+apply (metis dual_order.trans mult.commute split_div_lemma)
+done
+
+paragraph \<open>Interchange Law\<close>
+
+lemma overflow_times_neq_Value_MN_0 [rule_format]:
+"\<And>(x::nat machine_number_ext) (y::nat machine_number_ext).
+ x \<noteq> Value MN(0) \<Longrightarrow>
+ y \<noteq> Value MN(0) \<Longrightarrow> x [*] y \<noteq> Value MN(0)"
+apply (overflow_tac)
+done
 
 interpretation icl_mult_trunc_div_nat_overflow:
-  iclaw "TYPE(nat overflow)" "op \<le>\<^sub>?" "op [*]" "op [/]"
+  iclaw "TYPE(nat comparith)" "op \<le>" "op *\<^sub>M" "op /\<^sub>M"
 apply (unfold_locales)
-apply (induct_tac p; induct_tac r; induct_tac q; induct_tac s)
-apply (simp_all add: overflow_times_def overflow_divide_def)
-apply (rename_tac p r q s)
-apply (induct_tac p; induct_tac r; induct_tac q; induct_tac s)
-apply (simp_all add: option_monad_ops option_return_def)
-apply (rename_tac p r q s)
+apply (option_tac)
+apply (simp add: overflow_times_neq_Value_MN_0)
+apply (unfold overflow_times_def overflow_divide_def)
 apply (clarify)
-apply (rule icl_mult_trunc_div_nat.interchange_law)
+apply (thin_tac "r \<noteq> Value MN(0)")
+apply (thin_tac "s \<noteq> Value MN(0)")
+apply (overflow_tac)
+apply (transfer)
+apply (clarsimp)
+apply (safe)
+using icl_mult_trunc_div_nat.interchange_law apply (blast)
+using div_le_dividend dual_order.trans apply (blast)
+apply (meson dual_order.trans icl_mult_trunc_div_nat.interchange_law)
+using div_le_dividend dual_order.trans apply (blast)
 done
-*)
+
+default_sort type
 
 subsubsection \<open>9. Note: Partial operators.\<close>
 

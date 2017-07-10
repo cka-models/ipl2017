@@ -1,21 +1,31 @@
 (******************************************************************************)
-(* Project: The Interchange Law in Application to Concurrent Programming      *)
+(* Submission: "The Interchange Law: A Principle of Concurrent Programming"   *)
+(* Authors: Tony Hoare, Bernard Möller, Georg Struth, and Frank Zeyda         *)
 (* File: Overflow_Monad.thy                                                   *)
-(* Authors: Frank Zeyda, Tony Hoare and Georg Struth                          *)
 (******************************************************************************)
 
 section {* The Overflow Monad *}
 
 theory Overflow_Monad
-imports Main Groups "~~/src/HOL/Library/Monad_Syntax" Eisbach
+imports Machine_Number
+  Main Real Groups "~~/src/HOL/Library/Monad_Syntax" Eisbach
 begin
+
+text \<open>Type synonym for a binary operator on a type @{typ "'a"}.\<close>
+
+type_synonym 'a binop = "'a \<Rightarrow> 'a \<Rightarrow> 'a"
 
 subsection {* Type Definition *}
 
+text \<open>Any type with a linear order can be lifted into a type that includes \<open>\<top>\<close>.\<close>
+
 datatype 'a::linorder overflow =
-  Value "'a" | Overflow ("\<top>")
+  Value "'a" |
+  Overflow ("\<top>")
 
 subsection {* Ordering Relation *}
+
+text \<open>Overflow (\<open>\<top>\<close>) resides above any other value in the order.\<close>
 
 instantiation overflow :: (linorder) linorder
 begin
@@ -33,13 +43,13 @@ fun less_overflow :: "'a overflow \<Rightarrow> 'a overflow \<Rightarrow> bool" 
 
 instance
 apply (intro_classes)
+apply (unfold atomize_imp)
 -- {* Subgoal 1 *}
 apply (induct_tac x; induct_tac y; simp)
-using le_less apply (auto) [1]
+apply (rule less_le_not_le)
 -- {* Subgoal 2 *}
 apply (induct_tac x; simp)
 -- {* Subgoal 3 *}
-apply (unfold atomize_imp)
 apply (induct_tac x; induct_tac y; induct_tac z; simp)
 using order_trans apply (blast)
 -- {* Subgoal 4 *}
@@ -66,10 +76,12 @@ end
 
 subsection {* Monadic Constructors *}
 
+text \<open>To support monadic syntax, we define the bind and return functions below.\<close>
+
 primrec overflow_bind ::
   "'a::linorder overflow \<Rightarrow> ('a \<Rightarrow> 'b::linorder overflow) \<Rightarrow> 'b overflow" where
-"overflow_bind Overflow f = Overflow" |
-"overflow_bind (Value x) f = f x"
+"overflow_bind (Overflow) f = Overflow" |
+"overflow_bind (Value x)  f = f x"
 
 adhoc_overloading
   bind overflow_bind
@@ -84,40 +96,34 @@ text \<open>Attribute used to collection definitional laws for lifted operators.
 named_theorems overflow_monad_ops
   "definitial laws for lifted operators into the overflow monad"
 
-text \<open>Polymorphic constant for the maximal admissible value of some type.\<close>
-
-consts max_value :: "'a"
-
 paragraph \<open>Generic Lifting Functor\<close>
 
-text {*
-  I believe the definition below is not quite correct. We also need to check
-  that \<open>x' \<le> max_value\<close> and \<open>y' \<le> max_value\<close> in the conditional. Not doing
-  so gives rise to a counterexample to the ICL instance in Section 3. Namely,
-  by choosing \<open>p = 0\<close>, \<open>r = 1\<close> and \<open>s = 1\<close> we can derive \<open>\<top> \<le> 0\<close> if choosing
-  some \<open>q > max_value\<close>.
-*}
+default_sort machine_number
 
-definition check_overflow ::
-  "('a::linorder \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow>
-   ('a overflow \<Rightarrow> 'a overflow \<Rightarrow> 'a overflow)" where
+text \<open>Extended machine numbers are machine numbers that record an overflow.\<close>
+
+type_synonym 'a machine_number_ext = "'a machine_number overflow"
+
+definition check_overflow :: "'a binop \<Rightarrow> 'a machine_number_ext binop" where
 [overflow_monad_ops]:
 "check_overflow f x y =
-  do {x' \<leftarrow> x; y' \<leftarrow> y; if (f x' y') \<le> max_value then return (f x' y') else \<top>}"
+  do {x' \<leftarrow> x; y' \<leftarrow> y;
+    if (f \<lbrakk>x'\<rbrakk> \<lbrakk>y'\<rbrakk>) \<in> number_range then return MN(f \<lbrakk>x'\<rbrakk> \<lbrakk>y'\<rbrakk>) else \<top>}"
 
 paragraph \<open>Concrete Lifted Operators\<close>
 
 definition overflow_times ::
-  "'a::{times,linorder} overflow \<Rightarrow> 'a overflow \<Rightarrow> 'a overflow"
-  (infixl "[*]" 70) where
+  "'a::{times,machine_number} machine_number_ext binop" (infixl "[*]" 70) where
 [overflow_monad_ops]: "overflow_times = check_overflow (op *)"
 
 definition overflow_divide ::
-  "'a::{divide,linorder} overflow \<Rightarrow> 'a overflow \<Rightarrow> 'a overflow"
+  "'a::{divide,machine_number} machine_number_ext binop"
   (infixl "[div]" 70) where
 [overflow_monad_ops]: "overflow_divide = check_overflow (op div)"
 
-subsection {* Laws *}
+default_sort type
+
+subsection {* Overflow Laws *}
 
 lemma check_overflow_simps [simp]:
 "check_overflow f x \<top> = \<top>"
@@ -127,12 +133,11 @@ apply (case_tac x; simp)
 apply (case_tac y; simp)
 done
 
-lemma check_overflow_Value (*[simp]*):
+lemma check_overflow_Value [simp]:
 "check_overflow f (Value x) (Value y) =
-  (if (f x y) \<le> max_value then Value (f x y) else \<top>)"
+  (if (f \<lbrakk>x\<rbrakk> \<lbrakk>y\<rbrakk>) \<le> max_number then Value (MN(f \<lbrakk>x\<rbrakk> \<lbrakk>y\<rbrakk>)) else \<top>)"
 apply (unfold check_overflow_def)
-apply (case_tac "(f x y) \<le> max_value")
-apply (simp_all)
+apply (clarsimp)
 done
 
 subsection {* Proof Support *}
@@ -176,7 +181,19 @@ method overflow_tac = (
 
 subsection {* Proof Experiments *}
 
-lemma "\<And>(x::nat overflow) y. x [*] y = y [*] x"
+instantiation nat :: machine_number
+begin
+definition max_number_nat :: "nat" where
+"max_number_nat = 2 ^^ 31"
+instance
+apply (intro_classes)
+apply (unfold max_number_nat_def)
+apply (rule_tac x = "0" in exI)
+apply (simp)
+done
+end
+
+lemma "\<And>(x::nat machine_number_ext) y. x [*] y = y [*] x"
 apply (overflow_tac)
 apply (simp add: semiring_normalization_rules(7))
 done
