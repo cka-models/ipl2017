@@ -3,12 +3,12 @@
 (* Authors: Tony Hoare, Bernard Möller, Georg Struth, and Frank Zeyda         *)
 (* File: Option_Monad.thy                                                     *)
 (******************************************************************************)
+(* LAST REVIEWED: 10 July 2017 *)
 
 section {* The Option Monad: Supplement *}
 
 theory Option_Monad
-imports Eisbach
-  "~~/src/HOL/Library/Monad_Syntax"
+imports Preliminaries
   "~~/src/HOL/Library/Option_ord"
 begin
 
@@ -20,16 +20,20 @@ text \<open>
 
 subsection {* Syntax and Definitions *}
 
-text \<open>The \<open>return\<close> function of the option monad. (Bind is already defined.)\<close>
+text \<open>The notation \<open>\<bottom>\<close> is introduced for the constructor @{const None}.\<close>
+
+notation None ("\<bottom>")
+
+text \<open>We moreover define a \<open>return\<close> function for the option monad.\<close>
 
 definition option_return :: "'a \<Rightarrow> 'a option" ("return") where
 [simp]: "option_return x = Some x"
 
-text \<open>We introduce the notation \<open>\<bottom>\<close> for the constructor @{const None}.\<close>
-
-notation None ("\<bottom>")
+text \<open>Note that @{const bind} is already defined for type @{type option}.\<close>
 
 subsection {* Instantiations *}
+
+text \<open>More instantiations can be added here as desired.\<close>
 
 instantiation option :: (zero) zero
 begin
@@ -49,12 +53,12 @@ subsection {* Proof Support *}
 
 text \<open>Proof support for reasoning about @{type option} types.\<close>
 
-text \<open>Attribute used to collection definitional laws for lifted operators.\<close>
+text \<open>Attribute used to collect definitional laws for operators.\<close>
 
-named_theorems option_monad_ops
-  "definitial laws for lifted operators into the option monad"
+named_theorems option_ops
+  "definitial laws for operators of the option type/monad"
 
-text \<open>Tactic that facilitates proofs about the @{type option} type.\<close>
+text \<open>Tactic that facilitates proofs about @{type option} values.\<close>
 
 lemmas split_option =
   split_option_all
@@ -62,6 +66,6 @@ lemmas split_option =
 
 method option_tac = (
   (atomize (full))?,
-  ((unfold option_monad_ops option_return_def)?) [1],
-  (simp add: split_option zero_option_def one_option_def)?)
+  (simp add: split_option option_ops),
+  (clarsimp; simp?)?)
 end

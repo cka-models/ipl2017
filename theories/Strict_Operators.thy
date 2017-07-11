@@ -3,17 +3,15 @@
 (* Authors: Tony Hoare, Bernard Möller, Georg Struth, and Frank Zeyda         *)
 (* File: Strict_Operators.thy                                                 *)
 (******************************************************************************)
+(* LAST REVIEWED: 10 July 2017 *)
 
 section {* Strict Operators *}
 
 theory Strict_Operators
-imports Main Real Option_Monad Option
-  "~~/src/HOL/Library/Option_ord"
+imports Preliminaries Option_Monad
 begin
 
-text \<open>We encoded undefined values by virtue of the option type \<open>&\<close> monad.\<close>
-
-text \<open>Strict (lifted) operators always carry a subsection \<open>_\<^sub>?\<close>.\<close>
+text \<open>Strict operators carry a subscript \<open>_\<^sub>?\<close>.\<close>
 
 subsection {* Equality *}
 
@@ -27,7 +25,7 @@ fun lifted_equals :: "'a option \<Rightarrow> 'a option \<Rightarrow> bool" (inf
 
 subsection {* Relational Operators *}
 
-text \<open>We also define lifted versions of the comparison operators.\<close>
+text \<open>We also define lifted versions of arithmetic comparisons and subset.\<close>
 
 fun lifted_leq :: "'a::ord option \<Rightarrow> 'a option \<Rightarrow> bool" (infix "\<le>\<^sub>?" 50) where
 "Some x \<le>\<^sub>? Some y \<longleftrightarrow> x \<le> y" |
@@ -40,6 +38,20 @@ fun lifted_less :: "'a::ord option \<Rightarrow> 'a option \<Rightarrow> bool" (
 "Some x <\<^sub>? None \<longleftrightarrow> False" |
 "None <\<^sub>? Some y \<longleftrightarrow> True" |
 "None <\<^sub>? None \<longleftrightarrow> False"
+
+text \<open>
+  From Tony's note, it is not entirely clear to me how to define the operator
+  below. It turns out though that \<open>None \<subseteq>\<^sub>? Some y\<close> must be @{const True} in
+  order to prove the ICL example (10). It is also not clear to me whether the
+  result of \<open>x \<subseteq>\<^sub>? y\<close> could be undefined or is always expected to be a simple
+  value i.e.~of type @{type bool}. Discuss this with Tony at a suitable time.
+\<close>
+
+fun lifted_subset :: "'a set option \<Rightarrow> 'a set option \<Rightarrow> bool" (infix "\<subseteq>\<^sub>?" 50) where
+"Some x \<subseteq>\<^sub>? Some y \<longleftrightarrow> x \<subseteq> y" |
+"Some x \<subseteq>\<^sub>? None \<longleftrightarrow> (*True*) False" |
+"None \<subseteq>\<^sub>? Some y \<longleftrightarrow> (*True*) False" |
+"None \<subseteq>\<^sub>? None \<longleftrightarrow> True"
 
 text \<open>The above definitions coincide with the default ordering on @{type option}.\<close>
 
@@ -64,16 +76,26 @@ text \<open>
   of monadic lifting, using Isabelle/HOL's built-in support for monad syntax.
 \<close>
 
-definition lifted_times ::
-  "'a::times option \<Rightarrow> 'a option \<Rightarrow> 'a option" (infixl "*\<^sub>?" 70) where
+definition lifted_times :: "'a::times option binop" (infixl "*\<^sub>?" 70) where
 "x *\<^sub>? y = do {x' \<leftarrow> x; y' \<leftarrow> y; return (x' * y')}"
 
-definition lifted_divide ::
-  "'a::{divide,zero} option \<Rightarrow> 'a option \<Rightarrow> 'a option" (infixl "'/\<^sub>?" 70) where
+definition lifted_divide :: "'a::{divide, zero} option binop" (infixl "'/\<^sub>?" 70) where
 "x /\<^sub>? y = do {x' \<leftarrow> x; y' \<leftarrow> y; if y' \<noteq> 0 then return (x' div y') else \<bottom>}"
+
+subsection {* Union and Disjoint Union *}
+
+text \<open>Ditto for union and disjoint union.\<close>
+
+definition lifted_union :: "'a set option binop" (infixl "\<union>\<^sub>?" 70) where
+"x \<union>\<^sub>? y = do {x' \<leftarrow> x; y' \<leftarrow> y; return (x' \<union> y')}"
+
+definition disjoint_union :: "'a set option binop" (infixl "\<oplus>\<^sub>?" 70) where
+"x \<oplus>\<^sub>? y = do {x' \<leftarrow> x; y' \<leftarrow> y; if x' \<inter> y' = {} then return (x' \<union> y') else \<bottom>}"
 
 text \<open>We configure the above operators to be unfolded by @{method option_tac}.\<close>
 
-declare lifted_times_def [option_monad_ops]
-declare lifted_divide_def [option_monad_ops]
+declare lifted_times_def [option_ops]
+declare lifted_divide_def [option_ops]
+declare lifted_union_def [option_ops]
+declare disjoint_union_def [option_ops]
 end

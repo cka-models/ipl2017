@@ -3,10 +3,11 @@
 (* Authors: Tony Hoare, Bernard Möller, Georg Struth, and Frank Zeyda         *)
 (* File: ICL.thy                                                              *)
 (******************************************************************************)
+(* LAST REVIEWED: TODO *)
 
-section {* Examples of Applications *}
+section {* ICL Examples *}
 
-theory ICL
+theory ICL_Examples
 imports Main Real Strict_Operators Overflow_Monad
 begin
 
@@ -16,10 +17,6 @@ text \<open>We are going to use the \<open>|\<close> symbol for parallel composi
 
 no_notation (ASCII)
   disj  (infixr "|" 30)
-
-text \<open>Type synonym for a binary operator on a type @{typ "'a"}.\<close>
-
-type_synonym 'a binop = "'a \<Rightarrow> 'a \<Rightarrow> 'a"
 
 subsection {* Locale Definitions *}
 
@@ -107,6 +104,11 @@ apply (rule order_refl)
 apply (erule order_trans; assumption)
 done
 
+interpretation preorder_subset:
+  preorder "TYPE('a set)" "(op \<subseteq>)"
+apply (unfold_locales)
+done
+
 interpretation preorder_option_eq:
   preorder "TYPE('a option)" "(op =\<^sub>?)"
 apply (unfold_locales)
@@ -119,6 +121,14 @@ apply (unfold_locales)
 apply (option_tac)
 apply (option_tac)
 using order_trans apply (auto)
+done
+
+interpretation preorder_option_subset:
+  preorder "TYPE('a set option)" "(op \<subseteq>\<^sub>?)"
+apply (unfold_locales)
+apply (option_tac)
+apply (option_tac)
+apply (blast)
 done
 
 text \<open>Make the above instantiation lemmas automatic simplifications.\<close>
@@ -271,7 +281,6 @@ interpretation icl_mult_trunc_div_nat_strong:
   iclaw "TYPE(nat option)" "op \<le>\<^sub>?" "op *\<^sub>?" "op /\<^sub>?"
 apply (unfold_locales)
 apply (option_tac)
-apply (safe, clarsimp?)
 apply (subgoal_tac "(p div r) * (q div s) * (r * s) \<le> p * q")
 apply (metis div_le_mono div_mult_self_is_m nat_0_less_mult_iff)
 apply (unfold semiring_normalization_rules(13))
@@ -461,11 +470,11 @@ abbreviation comparith_top :: "'a comparith" ("\<top>") where
 
 definition comparith_times ::
   "'a::{times,machine_number} comparith binop" (infixl "*\<^sub>M" 70) where
-[option_monad_ops]: "x *\<^sub>M y = do {x' \<leftarrow> x; y' \<leftarrow> y; return (x' [*] y')}"
+[option_ops]: "x *\<^sub>M y = do {x' \<leftarrow> x; y' \<leftarrow> y; return (x' [*] y')}"
 
 definition comparith_divide ::
   "'a::{zero,divide,machine_number} comparith binop" (infixl "'/\<^sub>M" 70) where
-[option_monad_ops]:
+[option_ops]:
 "x /\<^sub>M y = do {x' \<leftarrow> x; y' \<leftarrow> y; if y' \<noteq> 0 then return (x' [div] y') else \<bottom>}"
 
 paragraph \<open>Cancellation Laws\<close>
@@ -522,7 +531,6 @@ apply (unfold_locales)
 apply (option_tac)
 apply (simp add: overflow_times_neq_Value_MN_0)
 apply (unfold overflow_times_def overflow_divide_def)
-apply (clarify)
 apply (thin_tac "r \<noteq> Value MN(0)")
 apply (thin_tac "s \<noteq> Value MN(0)")
 apply (overflow_tac)
@@ -539,8 +547,28 @@ default_sort type
 
 subsubsection \<open>9. Note: Partial operators.\<close>
 
-text \<open>
-  As already explained and used above, the lifting of total into partial
-  operators is achieved with the @{type option} types.
-\<close>
+text \<open>Partial operators are formalised in a separate theory \<open>Partiality\<close>.\<close>
+
+subsubsection \<open>Sets: union (\<open>\<union>\<close>) and disjoint union (\<open>+\<close>) of sets, ordered by inclusion.\<close>
+
+interpretation preorder_option_subset:
+  iclaw "TYPE('a set option)" "(op \<subseteq>\<^sub>?)" "op \<oplus>\<^sub>?" "op \<union>\<^sub>?"
+apply (unfold_locales)
+apply (rename_tac p q r s)
+apply (option_tac)
+apply (auto)
+-- {* Cannot be proved unless we change the definition of @{term "op \<subseteq>\<^sub>?"}! *}
+oops
+
+interpretation disjoint_union_unit:
+  has_unit "op \<oplus>\<^sub>?" "Some {}"
+apply (unfold_locales)
+apply (option_tac)
+apply (option_tac)
+done
+
+lemma [rule_format]:
+"\<forall>p. p = p \<oplus>\<^sub>? p \<longleftrightarrow> (p = \<bottom> \<or> p = Some {})"
+apply (option_tac)
+done
 end
