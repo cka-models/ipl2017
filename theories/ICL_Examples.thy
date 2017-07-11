@@ -154,7 +154,7 @@ locale iclaw = preorder +
 -- \<open>1. Note: the general shape of the interchange law.\<close>
   assumes interchange_law: "(p | r) ; (q | s) \<^bold>\<le> (p ; q) | (r ; s)"
 
-subsection {* Locale Interpretations *}
+subsection {* ICL Interpretations *}
 
 text \<open>
   In this section, we prove the various instantiations of the interchange law
@@ -191,7 +191,7 @@ apply (unfold_locales)
 apply (linarith)
 done
 
-subsubsection \<open>Arithmetic: multiplication (\<open>x\<close>) and division (\<open>/\<close>).\<close>
+subsubsection \<open>Arithmetic: multiplication (\<open>x\<close>) and division (\<open>/\<close>) of numbers.\<close>
 
 text \<open>This is proved for the types @{type rat}, @{type real}, and option types thereof.\<close>
 
@@ -545,11 +545,11 @@ done
 
 default_sort type
 
-subsubsection \<open>9. Note: Partial operators.\<close>
+subsubsection \<open>Note: Partial operators.\<close>
 
 text \<open>Partial operators are formalised in a separate theory \<open>Partiality\<close>.\<close>
 
-subsubsection \<open>Sets: union (\<open>\<union>\<close>) and disjoint union (\<open>+\<close>) of sets, ordered by inclusion.\<close>
+subsubsection \<open>Sets: union (\<open>\<union>\<close>) and disjoint union (\<open>+\<close>) of sets, ordered by inclusion \<open>\<subseteq>\<close>.\<close>
 
 interpretation preorder_option_subset:
   iclaw "TYPE('a set option)" "(op \<subseteq>\<^sub>?)" "op \<oplus>\<^sub>?" "op \<union>\<^sub>?"

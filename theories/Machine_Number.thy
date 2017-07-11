@@ -29,7 +29,7 @@ definition number_range :: "'a set" where
 [simp]: "number_range = {x. x \<le> max_number}"
 end
 
-text \<open>It is not difficult to prove that @{const number_range} is non-empty.}\<close>
+text \<open>It is not difficult to prove that @{const number_range} is non-empty.\<close>
 
 lemma ex_leq_max_number:
 "\<exists>x. x \<le> max_number"

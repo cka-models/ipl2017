@@ -8,6 +8,13 @@
 session "ICL" in "theories" = "HOL-Eisbach" +
   options [document = pdf, document_output = "../output"]
   theories [document = false]
-  theories Option_Monad Overflow_Monad Strict_Operators ICL
+  theories
+    Preliminaries
+    Option_Monad
+    Strict_Operators
+    Machine_Number
+    Overflow_Monad
+    Partiality
+    ICL_Examples
   document_files (in "../document")
     "root.tex" (* "root.bib" *) "document.sty"
