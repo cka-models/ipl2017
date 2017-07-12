@@ -13,6 +13,11 @@ begin
 
 hide_const Partiality.Value
 
+text \<open>We are going to use the \<open>|\<close> symbol for parallel composition.\<close>
+
+no_notation (ASCII)
+  disj  (infixr "|" 30)
+
 text \<open>Example applications of the interchange law from the working note.\<close>
 
 subsection \<open>Arithmetic: addition (\<open>+\<close>) and subtraction (\<open>-\<close>) of numbers.\<close>
@@ -455,5 +460,126 @@ text \<open>Use the type @{type partial} to prove this also for \<open>\<top>\<c
 lemma [rule_format]:
 "\<forall>p. p \<oplus>\<^sub>? p = p \<longleftrightarrow> (p = \<bottom> \<or> p = Some {})"
 apply (option_tac)
+done
+
+subsection \<open>Strings of characters: catenation (\<open>;\<close>) interleaving \<open>|\<close> and empty string (\<open>e\<close>).\<close>
+
+text \<open>We first define a datatype to capture the syntax of our string algebra.\<close>
+
+text \<open>Note that I added a constructor for a single character (\<open>atom\<close>).\<close>
+
+datatype 'a str_calc =
+  empty_str ("\<epsilon>") |
+  atom "'a" |
+  seq_str "'a str_calc" "'a str_calc" (infix ";" 100) |
+  par_str "'a str_calc" "'a str_calc" (infix "|" 100)
+
+text \<open>The following function facilitates the construction of strings.\<close>
+
+primrec mk_str :: "string \<Rightarrow> char str_calc" ("\<guillemotleft>_\<guillemotright>") where
+"mk_str [] = \<epsilon>" |
+"mk_str (h # t) = seq_str (atom h) (mk_str t)"
+
+value "\<guillemotleft>''frank''\<guillemotright>"
+
+text \<open>The function \<open>ch\<close> yields all characters in a @{type str_calc} term.\<close>
+
+primrec ch :: "'a str_calc \<Rightarrow> 'a set" where
+"ch \<epsilon> = {}" |
+"ch (atom c) = {c}" |
+"ch (p ; q) = (ch p) \<union> (ch q)" |
+"ch (p | q) = (ch p) \<union> (ch q)"
+
+text \<open>The function \<open>sd\<close> the sequential dependencies and uses \<open>ch\<close> for that.\<close>
+
+primrec sd :: "'a str_calc \<Rightarrow> ('a \<times> 'a) set" where
+"sd \<epsilon> = {}" |
+"sd (atom c) = {}" |
+"sd (p ; q) = {(c, d). c \<in> (ch p) \<and> d \<in> (ch q)} \<union> sd(p) \<union> sd(q)" |
+"sd (p | q) = sd(p) \<union> sd(q)"
+
+value "ch \<guillemotleft>''frank''\<guillemotright>"
+value "sd \<guillemotleft>''frank''\<guillemotright>"
+
+text \<open>We are now able to define the ordering of strings.\<close>
+
+instantiation str_calc :: (type) ord
+begin
+definition less_eq_str_calc :: "'a str_calc \<Rightarrow> 'a str_calc \<Rightarrow> bool" where
+"less_eq_str_calc p q \<longleftrightarrow> sd(q) \<subseteq> sd(p)"
+definition less_str_calc :: "'a str_calc \<Rightarrow> 'a str_calc \<Rightarrow> bool" where
+"less_str_calc p q \<longleftrightarrow> sd(q) \<subset> sd(p)"
+instance ..
+end
+
+instantiation str_calc :: (type) equiv
+begin
+definition equiv_str_calc :: "'a str_calc \<Rightarrow> 'a str_calc \<Rightarrow> bool" where
+"equiv_str_calc p q \<longleftrightarrow> sd(q) = sd(p)"
+instance
+apply (intro_classes)
+apply (unfold less_eq_str_calc_def less_str_calc_def equiv_str_calc_def)
+apply (auto)
+done
+end
+
+instance str_calc :: (type) preorder
+apply (intro_classes)
+apply (unfold less_eq_str_calc_def less_str_calc_def)
+apply (auto)
+done
+
+interpretation preorder_str_calc:
+  preorder "TYPE('a str_calc)" "op \<le>"
+apply (rule ICL.preorder_leq.preorder_axioms)
+done
+
+interpretation iclaw_str_calc:
+  iclaw "TYPE('a str_calc)" "op \<le>" "op ;" "op |"
+apply (unfold_locales)
+apply (unfold less_eq_str_calc_def less_str_calc_def)
+apply (clarsimp)
+apply (simp add: subset_iff)
+done
+
+subsection \<open>Note: Small interchange laws.\<close>
+
+lemma empty_str_seq_unit:
+"\<epsilon> ; s \<cong> s"
+"s ; \<epsilon> \<cong> s"
+apply (unfold equiv_str_calc_def)
+apply (simp_all add: set_eq_iff)
+done
+
+lemma empty_str_par_unit:
+"\<epsilon> | s \<cong> s"
+"s | \<epsilon> \<cong> s"
+apply (unfold equiv_str_calc_def)
+apply (simp_all add: set_eq_iff)
+done
+
+lemma small_interchange_laws:
+"(p | q) ; s \<le> p | (q ; s)"
+"p ; (r | s) \<le> (p ; r) | s"
+"q ; (r | s) \<le> r | (q ; s)"
+"(p | q) ; r \<le> (p ; r) | q"
+"p ; s \<le> p | s"
+"q ; s \<le> s | q"
+apply (unfold less_eq_str_calc_def less_str_calc_def)
+apply (simp)
+apply (auto)
+done
+
+subsection \<open>Note: an example derivation\<close>
+
+text \<open>TODO: Construct a proof that replicates the step-wise calculation.\<close>
+
+lemma example_derivation:
+assumes lhs: "LHS = \<guillemotleft>''abcd''\<guillemotright> | \<guillemotleft>''xyzw''\<guillemotright>"
+assumes rhs: "RHS = \<guillemotleft>''xaybzwcd''\<guillemotright>"
+shows "LHS \<ge> RHS"
+apply (unfold lhs rhs)
+apply (unfold less_eq_str_calc_def less_str_calc_def)
+apply (auto)
 done
 end

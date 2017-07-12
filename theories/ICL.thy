@@ -74,14 +74,6 @@ apply (rule conjI)
 using local.trans apply (blast)
 using local.trans apply (blast)
 done
-
-text \<open>Anti-symmetry of \<open>\<^bold>\<le>\<close> holds by definition of equivalence!\<close>
-
-lemma antisym:
-"x \<^bold>\<le> y \<Longrightarrow> y \<^bold>\<le> x \<Longrightarrow> x \<^bold>\<equiv> y"
-apply (unfold equiv_def)
-apply (clarsimp)
-done
 end
 
 subsubsection {* Locale: \<open>iclaw\<close> *}
@@ -95,7 +87,7 @@ text \<open>
 \<close>
 
 locale iclaw = preorder +
-  fixes seq_op :: "'a binop" (infixr ";" 110)
+  fixes seq_op :: "'a binop" (infixr ";" 100)
   fixes par_op :: "'a binop" (infixr "|" 100)
   assumes interchange_law: "(p | r) ; (q | s) \<^bold>\<le> (p ; q) | (r ; s)"
 
