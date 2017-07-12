@@ -15,6 +15,6 @@ session "ICL" in "theories" = "HOL-Eisbach" +
     Machine_Number
     Overflow_Monad
     Partiality
-    ICL_Examples
+    ICL ICL_Examples
   document_files (in "../document")
     "root.tex" (* "root.bib" *) "document.sty"

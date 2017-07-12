@@ -19,7 +19,7 @@
 %\usepackage{eurosym}
   %for \<euro>
 
-%\usepackage[only,bigsqcap]{stmaryrd}
+\usepackage[only,bigsqcap]{stmaryrd}
   %for \<Sqinter>
 
 %\usepackage{eufrak}
@@ -41,11 +41,11 @@
 
 \begin{document}
 
-\title{The Interchange Law in Application to Concurrent Programming\\---\\Mechanisation in Isabelle/HOL}
+\title{The Interchange Law: A Principle of Concurrent Programming\\---\\Mechanisation in Isabelle/HOL}
 
 \author{Tony Hoare \and Bernard M\"{o}ller \and Georg Struth \and Frank Zeyda}
 
-%\date{Working note: 7 Feb, 2016.}
+%\date{Working note: 16 June 2017}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                     Title                                    %
@@ -91,10 +91,10 @@
 \input{Overflow_Monad}
 \newpage
 
-\input{Strict_Operators}
+\input{Partiality}
 \newpage
 
-\input{Partiality}
+\input{ICL}
 \newpage
 
 \input{ICL_Examples}

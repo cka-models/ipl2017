@@ -3,7 +3,7 @@
 (* Authors: Tony Hoare, Bernard Möller, Georg Struth, and Frank Zeyda         *)
 (* File: Machine_Number.thy                                                   *)
 (******************************************************************************)
-(* LAST REVIEWED: 10 July 2017 *)
+(* LAST REVIEWED: 11 July 2017 *)
 
 section {* Machine Numbers *}
 
@@ -29,7 +29,7 @@ definition number_range :: "'a set" where
 [simp]: "number_range = {x. x \<le> max_number}"
 end
 
-text \<open>It is not difficult to prove that @{const number_range} is non-empty.\<close>
+text \<open>We can easily prove that @{const number_range} is a non-empty set.\<close>
 
 lemma ex_leq_max_number:
 "\<exists>x. x \<le> max_number"
@@ -45,24 +45,24 @@ done
 
 subsection {* Type Definition *}
 
-text \<open>We furthermore introduce a sub-type for representable numbers.\<close>
+text \<open>The above lemma enables us to introduce a type for representable numbers.\<close>
 
 typedef (overloaded)
   'a::machine_number machine_number = "number_range::'a set"
 apply (rule ex_in_number_range)
 done
 
-text \<open>The notation \<open>MN(_)\<close> is declared for the abstraction function.\<close>
+text \<open>The notation \<open>MN(_)\<close> will be used for the abstraction function.\<close>
 
 notation Abs_machine_number ("MN'(_')")
 
-text \<open>The notation \<open>\<lbrakk>_\<rbrakk>\<close> is declared for the representation function.\<close>
+text \<open>The notation \<open>\<lbrakk>_\<rbrakk>\<close> will be used for the representation function.\<close>
 
 notation Rep_machine_number ("\<lbrakk>_\<rbrakk>")
 
 setup_lifting type_definition_machine_number
 
-paragraph {* Proof Support *}
+subsection {* Proof Support *}
 
 lemmas Rep_machine_number_inject_sym = sym [OF Rep_machine_number_inject]
 

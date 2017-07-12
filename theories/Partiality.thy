@@ -3,92 +3,143 @@
 (* Authors: Tony Hoare, Bernard Möller, Georg Struth, and Frank Zeyda         *)
 (* File: Partiality.thy                                                       *)
 (******************************************************************************)
+(* LAST REVIEWED: 11 July 2017 *)
 
 section {* Partiality *}
 
 theory Partiality
-imports Preliminaries
-  "~~/src/HOL/Library/Monad_Syntax"
+imports Preliminaries ICL
 begin
-
-text \<open>Our construction here adds a distinct \<open>\<bottom>\<close> and \<open>\<top>\<close> element to some type.\<close>
 
 subsection {* Type Definition *}
 
-text \<open>We define a datatype \<open>'a partial\<close> to lift values into `extended values'.\<close>
+text \<open>We define a datatype \<open>'a partial\<close> that adds a distinct \<open>\<bottom>\<close> and \<open>\<top>\<close> to a type \<open>'a\<close>.\<close>
 
 datatype 'a partial =
-  Bottom ("\<bottom>") | Value "'a" | Top ("\<top>")
+  Bot | Value "'a" | Top
+
+text \<open>The notation \<open>\<bottom>\<close> is introduced for the constructor @{const Bot}.\<close>
+text \<open>The notation \<open>\<top>\<close> is introduced for the constructor @{const Top}.\<close>
+
+adhoc_overloading global_bot Bot
+adhoc_overloading global_top Top
 
 subsection {* Proof Support *}
 
-text \<open>Tactic that facilitates proofs about the @{type partial} type.\<close>
+text \<open>Attribute used to collect definitional laws for operators.\<close>
 
-named_theorems partial_ops
-  "definitional theorems for operators on the type partial"
+named_theorems partial_ops "definitional laws for operators on partial values"
 
-lemma partial_split_all:
-"(\<forall>x::'a partial. P x) = (P Bottom \<and> P Top \<and> (\<forall>x::'a. P (Value x)))"
+text \<open>Tactic that facilitates proofs about @{type partial} values.\<close>
+
+lemma split_partial_all:
+"(\<forall>x::'a partial. P x) = (P Bot \<and> P Top \<and> (\<forall>x::'a. P (Value x)))"
 apply (safe; simp?)
 apply (case_tac x)
 apply (simp_all)
 done
 
-lemma partial_split_ex:
-"(\<exists>x::'a partial. P x) = (P Bottom \<or> P Top \<or> (\<exists>x::'a. P (Value x)))"
+lemma split_partial_ex:
+"(\<exists>x::'a partial. P x) = (P Bot \<or> P Top \<or> (\<exists>x::'a. P (Value x)))"
 apply (safe; simp?)
 apply (case_tac x)
 apply (simp_all) [3]
 apply (auto)
 done
 
-lemmas partial_split_laws =
-  partial_split_all
-  partial_split_ex
+lemmas split_partial =
+  split_partial_all
+  split_partial_ex
 
 method partial_tac = (
   (atomize (full))?,
-  (simp add: partial_split_laws partial_ops)?,
+  (simp add: split_partial partial_ops),
   (clarsimp; simp?)?)
 
 subsection {* Monadic Constructors *}
 
-text \<open>We have strictness in both \<open>\<bottom>\<close> and \<open>\<top>\<close>.\<close>
+text \<open>Note that we have to ensure strictness in both \<open>\<bottom>\<close> and \<open>\<top>\<close>.\<close>
 
 primrec partial_bind ::
   "'a partial \<Rightarrow> ('a \<Rightarrow> 'b partial) \<Rightarrow> 'b partial" where
-"partial_bind (Bottom) f = Bottom" |
+"partial_bind Bot f = Bot" |
 "partial_bind (Value x) f = f x" |
-"partial_bind (Top) f = Top"
+"partial_bind Top f = Top"
 
 adhoc_overloading bind partial_bind
 
-definition partial_return :: "'a  \<Rightarrow> 'a partial" ("return") where
+definition partial_return :: "'a  \<Rightarrow> 'a partial" where
 [simp]: "partial_return x = Value x"
 
-subsection {* Lifting Functors *}
+adhoc_overloading return partial_return
 
-fun lift_unop :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a partial \<Rightarrow> 'b partial)" where
-"lift_unop f Bottom = Bottom" |
-"lift_unop f (Value x) = Value (f x)" |
-"lift_unop f Top = Top"
+subsection {* Generic Lifting *}
 
-fun lift_binop ::
+text \<open>We use the constant below for ad hoc overloading to avoid ambiguities.\<close>
+
+consts lift_partial :: "'a \<Rightarrow> 'b" ("_\<up>\<^sub>p" [1000] 1000)
+
+fun ulift_partial :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a partial \<Rightarrow> 'b partial)" where
+"ulift_partial f Bot = Bot" |
+"ulift_partial f (Value x) = Value (f x)" |
+"ulift_partial f Top = Top"
+
+fun blift_partial ::
   "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a partial \<Rightarrow> 'b partial \<Rightarrow> 'c partial)" where
-"lift_binop f Bottom Bottom = Bottom" |
-"lift_binop f Bottom (Value y) = Bottom" |
-"lift_binop f Bottom Top = Bottom" |
-"lift_binop f (Value x) Bottom = Bottom" |
-"lift_binop f (Value x) (Value y) = Value (f x y)" |
-"lift_binop f (Value x) Top = Top" |
-"lift_binop f Top Bottom = Bottom" |
-"lift_binop f Top (Value y) = Top" |
-"lift_binop f Top Top = Top"
+"blift_partial f Bot Bot = Bot" |
+"blift_partial f Bot (Value y) = Bot" |
+"blift_partial f Bot Top = Bot" | -- \<open>@{const Bot} dominates.\<close>
+"blift_partial f (Value x) Bot = Bot" |
+"blift_partial f (Value x) (Value y) = Value (f x y)" |
+"blift_partial f (Value x) Top = Top" |
+"blift_partial f Top Bot = Bot" | -- \<open>@{const Bot} dominates.\<close>
+"blift_partial f Top (Value y) = Top" |
+"blift_partial f Top Top = Top"
+
+adhoc_overloading lift_partial ulift_partial
+adhoc_overloading lift_partial blift_partial
+
+subsection {* Lifted Operators *}
+
+text \<open>What about relational operators? How do we lift those? [TODO]\<close>
+
+paragraph {* Addition and Subtraction *}
+
+definition plus_partial :: "'a::plus partial binop" (infixl "+\<^sub>p" 70) where
+"(op +\<^sub>p) = (op +)\<up>\<^sub>p"
+
+definition minus_partial :: "'a::minus partial binop" (infixl "-\<^sub>p" 70) where
+"(op -\<^sub>p) = (op -)\<up>\<^sub>p"
+
+paragraph {* Multiplication and Division *}
+
+definition times_partial :: "'a::times partial binop" (infixl "*\<^sub>p" 70) where
+"(op *\<^sub>p) = (op *)\<up>\<^sub>p"
+
+definition divide_partial :: "'a::{divide, zero} partial binop" (infixl "'/\<^sub>p" 70) where
+"x /\<^sub>p y = do {x' \<leftarrow> x; y' \<leftarrow> y; if y' \<noteq> 0 then return (x' div y') else \<bottom>}"
+
+paragraph {* Union and Disjoint Union *}
+
+definition union_partial :: "'a set partial binop" (infixl "\<union>\<^sub>p" 70) where
+"(op \<union>\<^sub>p) = (op \<union>)\<up>\<^sub>p"
+
+definition disjoint_union :: "'a set partial binop" (infixl "\<oplus>\<^sub>p" 70) where
+"x \<oplus>\<^sub>p y = do {x' \<leftarrow> x; y' \<leftarrow> y; if x' \<inter> y' = {} then return (x' \<union> y') else \<bottom>}"
+
+paragraph {* Proof Support *}
+
+declare plus_partial_def [partial_ops]
+declare minus_partial_def [partial_ops]
+declare times_partial_def [partial_ops]
+declare divide_partial_def [partial_ops]
+declare union_partial_def [partial_ops]
+declare disjoint_union_def [partial_ops]
 
 subsection {* Ordering Relation *}
 
 primrec partial_ord :: "'a partial \<Rightarrow> nat" where
-"partial_ord Bottom = 0" |
+"partial_ord Bot = 0" |
 "partial_ord (Value x) = 1" |
 "partial_ord Top = 2"
 
@@ -140,7 +191,7 @@ subsubsection {* Lattice *}
 instantiation partial :: (type) bot
 begin
 definition bot_partial :: "'a partial" where
-[partial_ops]: "bot_partial = Bottom"
+[partial_ops]: "bot_partial = Bot"
 instance ..
 end
 
@@ -151,30 +202,27 @@ definition top_partial :: "'a partial" where
 instance ..
 end
 
-notation inf (infixl "\<sqinter>" 70)
-notation sup (infixl "\<squnion>" 65)
-
 instantiation partial :: (lattice) lattice
 begin
 fun inf_partial :: "'a partial \<Rightarrow> 'a partial \<Rightarrow> 'a partial" where
-"Bottom \<sqinter> Bottom = Bottom" |
-"Bottom \<sqinter> (Value y) = Bottom" |
-"Bottom \<sqinter> Top = Bottom" |
-"(Value x) \<sqinter> Bottom = Bottom" |
+"Bot \<sqinter> Bot = Bot" |
+"Bot \<sqinter> (Value y) = Bot" |
+"Bot \<sqinter> Top = Bot" |
+"(Value x) \<sqinter> Bot = Bot" |
 "(Value x) \<sqinter> (Value y) = Value (x \<sqinter> y)" |
 "(Value x) \<sqinter> Top = (Value x)" |
-"Top \<sqinter> Bottom = Bottom" |
+"Top \<sqinter> Bot = Bot" |
 "Top \<sqinter> Value y = Value y" |
 "Top \<sqinter> Top = Top"
 
 fun sup_partial :: "'a partial \<Rightarrow> 'a partial \<Rightarrow> 'a partial" where
-"Bottom \<squnion> Bottom = Bottom" |
-"Bottom \<squnion> (Value y) = (Value y)" |
-"Bottom \<squnion> Top = Top" |
-"(Value x) \<squnion> Bottom = (Value x)" |
+"Bot \<squnion> Bot = Bot" |
+"Bot \<squnion> (Value y) = (Value y)" |
+"Bot \<squnion> Top = Top" |
+"(Value x) \<squnion> Bot = (Value x)" |
 "(Value x) \<squnion> (Value y) = Value (x \<squnion> y)" |
 "(Value x) \<squnion> Top = Top" |
-"Top \<squnion> Bottom = Top" |
+"Top \<squnion> Bot = Top" |
 "Top \<squnion> (Value y) = Top" |
 "Top \<squnion> Top = Top"
 instance
@@ -194,6 +242,8 @@ apply (partial_tac)
 done
 end
 
+text \<open>Validation of the definition of meet and join above.\<close>
+
 lemma partial_ord_inf_lemma [simp]:
 "\<forall>a b. partial_ord (a \<sqinter> b) = min (partial_ord a) (partial_ord b)"
 apply (partial_tac)
@@ -211,7 +261,7 @@ begin
 definition Inf_partial :: "'a partial set \<Rightarrow> 'a partial" where
 [partial_ops]:
 "Inf_partial xs =
-  (if Bottom \<in> xs then Bottom else
+  (if Bot \<in> xs then Bot else
     let values = {x. Value x \<in> xs} in
       if values = {} then Top else Value (Inf values))"
 
@@ -220,7 +270,7 @@ definition Sup_partial :: "'a partial set \<Rightarrow> 'a partial" where
 "Sup_partial xs =
   (if Top \<in> xs then Top else
     let values = {x. Value x \<in> xs} in
-      if values = {} then Bottom else Value (Sup values))"
+      if values = {} then Bot else Value (Sup values))"
 instance
 apply (intro_classes)
 -- {* Subgoal 1 *}
@@ -241,4 +291,30 @@ apply (partial_tac)
 apply (partial_tac)
 done
 end
+
+subsection {* ICL Lifting Lemmas *}
+
+lemma iclaw_eq_lift_partial [simp]:
+"iclaw (op =) seq_op par_op \<Longrightarrow>
+ iclaw (op =) seq_op\<up>\<^sub>p par_op\<up>\<^sub>p"
+apply (unfold iclaw_def iclaw_axioms_def)
+apply (partial_tac)
+done
+
+lemma preorder_less_eq_lift_partial [simp]:
+"preorder (op \<le>::'a::ord relop) \<Longrightarrow>
+ preorder (op \<le>::'a::ord partial relop)"
+apply (unfold_locales)
+apply (partial_tac)
+apply (meson preorder.refl)
+apply (partial_tac)
+apply (meson preorder.trans)
+done
+
+lemma iclaw_less_eq_lift_partial [simp]:
+"iclaw (op \<le>) seq_op par_op \<Longrightarrow>
+ iclaw (op \<le>) seq_op\<up>\<^sub>p par_op\<up>\<^sub>p"
+apply (unfold iclaw_def iclaw_axioms_def)
+apply (partial_tac)
+done
 end
