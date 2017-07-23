@@ -18,3 +18,4 @@ session "ICL" in "theories" = "HOL-Eisbach" +
     ICL ICL_Examples
   document_files (in "../document")
     "root.tex" (* "root.bib" *) "document.sty"
+

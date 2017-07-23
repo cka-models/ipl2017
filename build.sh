@@ -1,5 +1,5 @@
 #!/bin/sh
-isabelle build -c -b ICL
+isabelle build -c ICL
 
-# Overwrite document.pdf with the latest version.
-cp output/document.pdf document.pdf
+# Overwrite report.pdf with the latest compiled version.
+cp -f output/document.pdf report.pdf
