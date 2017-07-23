@@ -19,9 +19,11 @@ datatype 'a partial =
   Bot | Value "'a" | Top
 
 text \<open>The notation \<open>\<bottom>\<close> is introduced for the constructor @{const Bot}.\<close>
-text \<open>The notation \<open>\<top>\<close> is introduced for the constructor @{const Top}.\<close>
 
 adhoc_overloading global_bot Bot
+
+text \<open>The notation \<open>\<top>\<close> is introduced for the constructor @{const Top}.\<close>
+
 adhoc_overloading global_top Top
 
 subsection {* Proof Support *}
