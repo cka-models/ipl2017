@@ -698,7 +698,7 @@ primrec sd :: "'a str_calc \<Rightarrow> ('a \<times> 'a) set" where
 "sd (p ; q) = {(c, d). c \<in> (ch p) \<and> d \<in> (ch q)} \<union> sd(p) \<union> sd(q)" |
 "sd (p | q) = sd(p) \<union> sd(q)"
 
-(*>*)
+(*<*)
 value "ch \<guillemotleft>frank\<guillemotright>"
 value "sd \<guillemotleft>frank\<guillemotright>"
 (*>*)
