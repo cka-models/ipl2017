@@ -788,7 +788,7 @@ done
 text \<open>
   The following law does not hold but is needed to remove the \<open>ch\<close>-related
   provisos in the law \<open>seq_str_mono\<close>. Alternatively, we could strengthen the
-  definition of the order by additional requiring @{term "ch p = ch q"}.
+  definition of the order by additionally requiring @{term "ch p = ch q"}.
 \<close>
 
 lemma sd_imp_ch_subset:
