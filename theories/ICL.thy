@@ -113,10 +113,24 @@ apply (rule order_refl)
 apply (erule order_trans; assumption)
 done
 
+interpretation preorder_implies:
+  preorder "TYPE(bool)" "op \<longrightarrow>"
+apply (unfold_locales)
+apply (simp_all)
+done
+
+interpretation preorder_rimplies:
+  preorder "TYPE(bool)" "op \<longleftarrow>"
+apply (unfold_locales)
+apply (simp_all)
+done
+
 subsection {* Proof Support *}
 
 text \<open>We make the above instantiation lemmas automatic simplifications.\<close>
 
 declare preorder_eq.preorder_axioms [simp]
 declare preorder_leq.preorder_axioms [simp]
+declare preorder_implies.preorder_axioms [simp]
+declare preorder_rimplies.preorder_axioms [simp]
 end

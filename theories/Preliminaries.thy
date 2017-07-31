@@ -44,36 +44,41 @@ notation
   Inf ("\<Sqinter>") and
   Sup ("\<Squnion>")
 
+subsection {* Reverse Implication *}
+
+abbreviation (input) rimplies :: "[bool, bool] \<Rightarrow> bool" (infixr "\<longleftarrow>" 25)
+where "Q \<longleftarrow> P \<equiv> P \<longrightarrow> Q"
+
 subsection {* Monad Syntax *}
 
 text \<open>We use the constant below for ad hoc overloading to avoid ambiguities.\<close>
 
 consts return :: "'a \<Rightarrow> 'b" ("return")
 
-subsection {* Type Class for Equivalence *}
+subsection {* Equivalence Operator *}
 
-class equiv = ord +
-  fixes equiv :: "'a \<Rightarrow> 'a \<Rightarrow> bool" (infix "\<cong>" 50)
-  assumes equiv_mutual_ord : "x \<cong> y \<longleftrightarrow> x \<le> y \<and> y \<le> x"
+text \<open>Equivalence is introduced by extending the type class @{class ord}.\<close>
 
+definition (in ord) equiv :: "'a \<Rightarrow> 'a \<Rightarrow> bool" (infix "\<cong>" 50) where
+[iff]: "x \<cong> y \<longleftrightarrow> x \<le> y \<and> y \<le> x"
+
+context preorder
+begin
 lemma equiv_relf:
-fixes x :: "'a::{equiv, preorder}"
-shows "x \<cong> x"
-apply (unfold equiv_mutual_ord)
+"x \<cong> x"
 apply (clarsimp)
 done
 
 lemma equiv_sym:
 "x \<cong> y \<Longrightarrow> y \<cong> x"
-apply (unfold equiv_mutual_ord)
-apply (auto)
+apply (clarsimp)
 done
 
 lemma equiv_trans:
-fixes x :: "'a::{equiv, preorder}"
-fixes y :: "'a::{equiv, preorder}"
-fixes z :: "'a::{equiv, preorder}"
-shows "x \<cong> y \<Longrightarrow> y \<cong> z \<Longrightarrow> x \<cong> z"
-apply (unfold equiv_mutual_ord)
-using order_trans by (auto)
+"x \<cong> y \<Longrightarrow> y \<cong> z \<Longrightarrow> x \<cong> z"
+apply (safe)
+apply (erule order_trans; assumption)
+apply (erule order_trans; assumption)
+done
+end
 end

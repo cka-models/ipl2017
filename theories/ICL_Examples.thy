@@ -462,25 +462,225 @@ lemma [rule_format]:
 apply (option_tac)
 done
 
-subsection \<open>Strings of characters: catenation (\<open>;\<close>) interleaving \<open>|\<close> and empty string (\<open>e\<close>).\<close>
+subsection \<open>Note: Variance of operators, covariant (\<open>+\<close>,\<open>\<and>\<close>, \<open>\<or>\<close>) and contravariant (\<open>-\<close>, \<open>\<and>\<close>, \<open>\<Leftarrow>\<close>)\<close>
 
-text \<open>We first define a datatype to capture the syntax of our string algebra.\<close>
+text \<open>
+  We introduce the properties of covariance and contravariance via two locales.
+  The underlying ordering has to be a @{locale preorder} in both cases.
+\<close>
 
-text \<open>Note that I added a constructor for a single character (\<open>atom\<close>).\<close>
+locale covariant = preorder +
+  fixes cov_op :: "'a binop" (infixr "cov" 100)
+  assumes covariant: "x \<^bold>\<le> x' \<Longrightarrow> y \<^bold>\<le> y' \<Longrightarrow> (x cov y) \<^bold>\<le> (x' cov y')"
+
+text \<open>We consider contravariance in the first, second or both operators.\<close>
+
+locale contravariant = preorder +
+  fixes ctv_op :: "'a binop" (infixr "ctv" 100)
+  assumes contravariant: "x' \<^bold>\<le> x \<Longrightarrow> y' \<^bold>\<le> y \<Longrightarrow> (x ctv y) \<^bold>\<le> (x' ctv y')"
+
+locale contravariant1 = preorder +
+  fixes ctv_op :: "'a binop" (infixr "ctv" 100)
+  assumes contravariant: "x' \<^bold>\<le> x \<Longrightarrow> y \<^bold>\<le> y' \<Longrightarrow> (x ctv y) \<^bold>\<le> (x' ctv y')"
+
+locale contravariant2 = preorder +
+  fixes ctv_op :: "'a binop" (infixr "ctv" 100)
+  assumes contravariant: "x \<^bold>\<le> x' \<Longrightarrow> y' \<^bold>\<le> y \<Longrightarrow> (x ctv y) \<^bold>\<le> (x' ctv y')"
+
+text \<open>
+  We prove covariance of \<open>+\<close> for @{type nat}ural, @{type int}eger,
+  @{type rat}ional and @{type real} numbers, as well as extensions of those
+  types incorporating undefined results.
+\<close>
+
+interpretation covariant_plus_nat:
+  covariant "TYPE(nat)" "op \<le>" "op +"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation covariant_plus_nat_option:
+  covariant "TYPE(nat option)" "op \<le>\<^sub>?" "op +\<^sub>?"
+apply (unfold_locales)
+apply (option_tac)
+done
+
+interpretation covariant_plus_int:
+  covariant "TYPE(int)" "op \<le>" "op +"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation covariant_plus_int_option:
+  covariant "TYPE(int option)" "op \<le>\<^sub>?" "op +\<^sub>?"
+apply (unfold_locales)
+apply (option_tac)
+done
+
+interpretation covariant_plus_rat:
+  covariant "TYPE(rat)" "op \<le>" "op +"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation covariant_plus_rat_option:
+  covariant "TYPE(rat option)" "op \<le>\<^sub>?" "op +\<^sub>?"
+apply (unfold_locales)
+apply (option_tac)
+done
+
+interpretation covariant_plus_real:
+  covariant "TYPE(real)" "op \<le>" "op +"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation covariant_plus_real_option:
+  covariant "TYPE(real option)" "op \<le>\<^sub>?" "op +\<^sub>?"
+apply (unfold_locales)
+apply (option_tac)
+done
+
+interpretation covariant_conj:
+  covariant "TYPE(bool)" "op \<longrightarrow>" "op \<and>"
+apply (unfold_locales)
+apply (clarsimp)
+done
+
+interpretation covariant_disj:
+  covariant "TYPE(bool)" "op \<longrightarrow>" "op \<or>"
+apply (unfold_locales)
+apply (clarsimp)
+done
+
+text \<open>
+  We prove contravariance in the right operator of \<open>-\<close> for @{type nat}ural,
+  @{type int}eger, @{type rat}ional and @{type real} numbers. We note that
+  contravariance does not hold for their respective @{type option} types. A
+  counter examples is where \<open>y' = \<bottom>\<close> in \<open>(x ctv y) \<^bold>\<le> (x' ctv y')\<close> with all
+  other quantities defined.
+\<close>
+
+interpretation contravariant2_minus_nat:
+  contravariant2 "TYPE(nat)" "op \<le>" "op -"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation contravariant2_minus_int:
+  contravariant2 "TYPE(int)" "op \<le>" "op -"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation contravariant2_minus_rat:
+  contravariant2 "TYPE(rat)" "op \<le>" "op -"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation contravariant2_minus_real:
+  contravariant2 "TYPE(real)" "op \<le>" "op -"
+apply (unfold_locales)
+apply (linarith)
+done
+
+text \<open>
+  Contravariance of division actually could not be proved. First of all it
+  does not hold for plain number types @{type nat} since the additional caveat
+  @{term "y' > 0"} is needed, see the proof below. For @{type int}, @{type rat}
+  and @{type real} it is even worse, since we also need to show that \<open>y*y'\<close> is
+  positive. Moving to @{type option} types does not help as we are facing the
+  same issue as for \<open>-\<close> above. Various instances of the contravariance law for
+  division may only be proved if we strengthen the assumptions on \<open>y\<close> and \<open>y'\<close>.
+\<close>
+
+interpretation contravariant2_nat:
+  contravariant2 "TYPE(nat)" "op \<le>" "op div"
+apply (unfold_locales)
+apply (subgoal_tac "x div y \<le> x div y'")
+apply (erule order_trans)
+apply (erule div_le_mono)
+apply (rule div_le_mono2)
+apply (simp_all)
+oops
+
+interpretation contravariant2_rat:
+  contravariant2 "TYPE(rat)" "op \<le>" "op /"
+apply (unfold_locales)
+apply (subgoal_tac "x / y \<le> x / y'")
+apply (erule order_trans)
+apply (erule divide_right_mono) defer
+apply (erule divide_left_mono) defer
+defer
+oops
+
+interpretation contravariant2_div_nat:
+  contravariant2 "TYPE(nat option)" "op \<le>\<^sub>?" "op /\<^sub>?"
+apply (unfold_locales)
+apply (option_tac)
+apply (safe; clarsimp?) defer
+apply (subgoal_tac "x div y \<le> x div y'")
+apply (erule order_trans)
+apply (erule div_le_mono)
+apply (erule div_le_mono2)
+apply (assumption)
+oops
+
+interpretation contravariant_ref_implies:
+  contravariant2 "TYPE(bool)" "op \<longrightarrow>" "op \<longleftarrow>"
+apply (unfold_locales)
+apply (auto)
+done
+
+text \<open>
+  Covariance and contravariance with respect to equality is trivial in HOL due
+  to Leibniz's law following from the axioms of the HOL kernel.
+\<close>
+
+subsection {* Note: Modularity, compositionality, locality, etc.*}
+
+text \<open>
+  This proof could  be more involved in requiring inductive reasoning about
+  arbitrary languages whose operators are covariant with respect to an order.
+  In a deep embedding of a specific language, this would not be difficult to
+  show. We will not dig deeper into mechanically proving this property in all
+  its generality, as it requires deep embedding of HOL functions, and giving
+  a semantics to this (in HOL) I stipulate is beyond expressivity of the type
+  system of HOL. An inductive proof would have to proceed at the meta-level.
+\<close>
+
+subsection \<open>Strings of characters: catenation (\<open>;\<close>) interleaving \<open>|\<close> and empty string (\<open>\<epsilon>\<close>).\<close>
+
+text \<open>We first define a datatype to formalise the syntax of our string algebra.\<close>
+
+text \<open>Note that we added a constructor for a single character (\<open>atom\<close>).\<close>
 
 datatype 'a str_calc =
   empty_str ("\<epsilon>") |
   atom "'a" |
-  seq_str "'a str_calc" "'a str_calc" (infix ";" 100) |
-  par_str "'a str_calc" "'a str_calc" (infix "|" 100)
+  seq_str "'a str_calc" "'a str_calc" (infixr ";" 110) |
+  par_str "'a str_calc" "'a str_calc" (infixr "|" 100)
 
-text \<open>The following function facilitates the construction of strings.\<close>
+text \<open>The following function facilitates construction from HOL strings.\<close>
 
-primrec mk_str :: "string \<Rightarrow> char str_calc" ("\<guillemotleft>_\<guillemotright>") where
+primrec mk_str :: "string \<Rightarrow> char str_calc" (*("\<guillemotleft>_\<guillemotright>" )*) where
 "mk_str [] = \<epsilon>" |
 "mk_str (h # t) = seq_str (atom h) (mk_str t)"
 
-value "\<guillemotleft>''frank''\<guillemotright>"
+syntax "_mk_str" :: "id \<Rightarrow> char str_calc" ("\<guillemotleft>_\<guillemotright>")
+
+parse_translation \<open>
+  let
+    fun mk_str_tr [Free  (name, _)] = @{const mk_str} $ (HOLogic.mk_string name)
+      | mk_str_tr [Const (name, _)] = @{const mk_str} $ (HOLogic.mk_string name)
+      | mk_str_tr _ = raise Match;
+  in
+    [(@{syntax_const "_mk_str"}, K mk_str_tr)]
+  end
+\<close>
+
+translations "_mk_str s" \<leftharpoondown> "(CONST mk_str) s"
 
 text \<open>The function \<open>ch\<close> yields all characters in a @{type str_calc} term.\<close>
 
@@ -490,7 +690,7 @@ primrec ch :: "'a str_calc \<Rightarrow> 'a set" where
 "ch (p ; q) = (ch p) \<union> (ch q)" |
 "ch (p | q) = (ch p) \<union> (ch q)"
 
-text \<open>The function \<open>sd\<close> the sequential dependencies and uses \<open>ch\<close> for that.\<close>
+text \<open>The function \<open>sd\<close> computes the sequential dependencies using \<open>ch\<close>.\<close>
 
 primrec sd :: "'a str_calc \<Rightarrow> ('a \<times> 'a) set" where
 "sd \<epsilon> = {}" |
@@ -498,30 +698,22 @@ primrec sd :: "'a str_calc \<Rightarrow> ('a \<times> 'a) set" where
 "sd (p ; q) = {(c, d). c \<in> (ch p) \<and> d \<in> (ch q)} \<union> sd(p) \<union> sd(q)" |
 "sd (p | q) = sd(p) \<union> sd(q)"
 
-value "ch \<guillemotleft>''frank''\<guillemotright>"
-value "sd \<guillemotleft>''frank''\<guillemotright>"
-
-text \<open>We are now able to define the ordering of strings.\<close>
+(*>*)
+value "ch \<guillemotleft>frank\<guillemotright>"
+value "sd \<guillemotleft>frank\<guillemotright>"
+(*>*)
+text \<open>We are now able to define our ordering of @{type str_calc} objects.\<close>
 
 instantiation str_calc :: (type) ord
 begin
 definition less_eq_str_calc :: "'a str_calc \<Rightarrow> 'a str_calc \<Rightarrow> bool" where
-"less_eq_str_calc p q \<longleftrightarrow> sd(q) \<subseteq> sd(p)"
+"less_eq_str_calc p q \<longleftrightarrow> (*ch p = ch q \<and>*)sd(q) \<subseteq> sd(p)"
 definition less_str_calc :: "'a str_calc \<Rightarrow> 'a str_calc \<Rightarrow> bool" where
-"less_str_calc p q \<longleftrightarrow> sd(q) \<subset> sd(p)"
+"less_str_calc p q \<longleftrightarrow> (*ch p = ch q \<and>*)sd(q) \<subset> sd(p)"
 instance ..
 end
 
-instantiation str_calc :: (type) equiv
-begin
-definition equiv_str_calc :: "'a str_calc \<Rightarrow> 'a str_calc \<Rightarrow> bool" where
-"equiv_str_calc p q \<longleftrightarrow> sd(q) = sd(p)"
-instance
-apply (intro_classes)
-apply (unfold less_eq_str_calc_def less_str_calc_def equiv_str_calc_def)
-apply (auto)
-done
-end
+text \<open>Proof of the interchange law for the string calculus operators.\<close>
 
 instance str_calc :: (type) preorder
 apply (intro_classes)
@@ -540,22 +732,30 @@ apply (unfold_locales)
 apply (unfold less_eq_str_calc_def less_str_calc_def)
 apply (clarsimp)
 apply (simp add: subset_iff)
+(* apply (auto) *)
 done
 
 subsection \<open>Note: Small interchange laws.\<close>
 
+lemma equiv_str_calc:
+"s \<cong> t \<longleftrightarrow> (*ch s = ch t \<and>*) sd s = sd t"
+apply (clarsimp)
+apply (unfold less_eq_str_calc_def)
+apply (auto)
+done
+
 lemma empty_str_seq_unit:
 "\<epsilon> ; s \<cong> s"
 "s ; \<epsilon> \<cong> s"
-apply (unfold equiv_str_calc_def)
-apply (simp_all add: set_eq_iff)
+apply (unfold equiv_str_calc)
+apply (auto)
 done
 
 lemma empty_str_par_unit:
 "\<epsilon> | s \<cong> s"
 "s | \<epsilon> \<cong> s"
-apply (unfold equiv_str_calc_def)
-apply (simp_all add: set_eq_iff)
+apply (unfold equiv_str_calc)
+apply (auto)
 done
 
 lemma small_interchange_laws:
@@ -565,21 +765,106 @@ lemma small_interchange_laws:
 "(p | q) ; r \<le> (p ; r) | q"
 "p ; s \<le> p | s"
 "q ; s \<le> s | q"
-apply (unfold less_eq_str_calc_def less_str_calc_def)
-apply (simp)
+apply (unfold less_eq_str_calc_def)
 apply (auto)
 done
 
 subsection \<open>Note: an example derivation\<close>
 
-text \<open>TODO: Construct a proof that replicates the step-wise calculation.\<close>
+text \<open>We first prove several key lemmas.\<close>
+
+lemma seq_str_assoc:
+"(s ; t) ; u \<ge> s ; t ; u"
+apply (unfold less_eq_str_calc_def)
+apply (auto)
+done
+
+lemma par_str_assoc:
+"(s | t) | u \<ge> s | t | u"
+apply (unfold less_eq_str_calc_def)
+apply (auto)
+done
+
+text \<open>
+  The following law does not hold but is needed to remove the \<open>ch\<close>-related
+  provisos in the law \<open>seq_str_mono\<close>. Alternatively, we could strengthen the
+  definition of the order by additional requiring @{term "ch p = ch q"}.
+\<close>
+
+lemma sd_imp_ch_subset:
+"sd s \<subseteq> sd t \<Longrightarrow> ch s \<subseteq> ch t"
+apply (induction s; induction t)
+apply (simp)
+apply (simp)
+apply (simp)
+apply (simp)
+defer
+defer
+apply (simp)
+apply (simp)
+apply (simp)
+apply (simp)
+apply (simp)
+apply (simp)
+apply (simp)
+apply (simp)
+apply (simp)
+apply (simp)
+oops
+
+lemma seq_str_mono:
+"ch s = ch s' \<Longrightarrow>
+ ch t = ch t' \<Longrightarrow>
+ s \<ge> s' \<Longrightarrow> t \<ge> t' \<Longrightarrow> (s ; t) \<ge> (s' ; t')"
+apply (unfold less_eq_str_calc_def)
+apply (auto)
+done
+
+lemma par_str_mono:
+"s \<ge> s' \<Longrightarrow> t \<ge> t' \<Longrightarrow> (s | t) \<ge> (s' | t')"
+apply (unfold less_eq_str_calc_def)
+apply (auto)
+done
+
+lemma str_calc_step:
+fixes LHS :: "'a::preorder"
+fixes RHS :: "'a::preorder"
+fixes MID :: "'a::preorder"
+shows "LHS \<ge> MID \<Longrightarrow> MID \<ge> RHS \<Longrightarrow> LHS \<ge> RHS"
+using order_trans by (blast)
 
 lemma example_derivation:
-assumes lhs: "LHS = \<guillemotleft>''abcd''\<guillemotright> | \<guillemotleft>''xyzw''\<guillemotright>"
-assumes rhs: "RHS = \<guillemotleft>''xaybzwcd''\<guillemotright>"
+assumes lhs: "LHS = \<guillemotleft>abcd\<guillemotright> | \<guillemotleft>xyzw\<guillemotright>"
+assumes rhs: "RHS = \<guillemotleft>xaybzwcd\<guillemotright>"
 shows "LHS \<ge> RHS"
 apply (unfold lhs rhs)
-apply (unfold less_eq_str_calc_def less_str_calc_def)
+-- \<open>Step 1\<close>
+apply (rule_tac MID = "(\<guillemotleft>a\<guillemotright> ; \<guillemotleft>bcd\<guillemotright>) | (\<guillemotleft>xy\<guillemotright> ; \<guillemotleft>zw\<guillemotright>)" in str_calc_step)
+apply (unfold less_eq_str_calc_def; auto) [1]
+-- \<open>Step 2\<close>
+apply (rule_tac MID = "(\<guillemotleft>a\<guillemotright> | \<guillemotleft>xy\<guillemotright>) ; (\<guillemotleft>bcd\<guillemotright> | \<guillemotleft>zw\<guillemotright>)" in str_calc_step)
+apply (rule iclaw_str_calc.interchange_law)
+-- \<open>Step 3\<close>
+apply (rule_tac MID = "(\<guillemotleft>a\<guillemotright> | \<guillemotleft>x\<guillemotright> ; \<guillemotleft>y\<guillemotright>) ; (\<guillemotleft>b\<guillemotright> ; \<guillemotleft>cd\<guillemotright> | \<guillemotleft>zw\<guillemotright>)" in str_calc_step)
+apply (unfold less_eq_str_calc_def; auto) [1]
+-- \<open>Step 4\<close>
+apply (rule_tac MID = "(\<guillemotleft>a\<guillemotright> | \<guillemotleft>x\<guillemotright>) ; \<guillemotleft>y\<guillemotright> ; (\<guillemotleft>b\<guillemotright> | \<guillemotleft>zw\<guillemotright>) ; \<guillemotleft>cd\<guillemotright>" in str_calc_step)
+apply (unfold less_eq_str_calc_def; auto) [1]
+(* using seq_str_assoc seq_str_mono
+  small_interchange_laws(1)
+  small_interchange_laws(4) str_calc_step
+apply (blast) *)
+-- \<open>Remainder of the proof...\<close>
+apply (unfold less_eq_str_calc_def)
+apply (auto)
+done
+
+lemma example_derivation_auto:
+assumes lhs: "LHS = \<guillemotleft>abcd\<guillemotright> | \<guillemotleft>xyzw\<guillemotright>"
+assumes rhs: "RHS = \<guillemotleft>xaybzwcd\<guillemotright>"
+shows "LHS \<ge> RHS"
+apply (unfold lhs rhs)
+apply (unfold less_eq_str_calc_def)
 apply (auto)
 done
 end
