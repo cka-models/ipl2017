@@ -13,67 +13,95 @@ begin
 
 hide_const Partiality.Value
 
-text \<open>We are going to use the \<open>|\<close> symbol for parallel composition.\<close>
+text \<open>We are going to use the `\<open>|\<close>' symbol for parallel composition.\<close>
 
 no_notation (ASCII)
   disj  (infixr "|" 30)
 
-text \<open>Example applications of the interchange law from the working note.\<close>
+text \<open>Example applications of the interchange law from the article.\<close>
 
 subsection \<open>Arithmetic: addition (\<open>+\<close>) and subtraction (\<open>-\<close>) of numbers.\<close>
 
 text \<open>
-  We prove the ICL for the HOL types @{type int}, @{type rat} and @{type real},
-  as well as the corresponding @{type option} type instances of those types.
+  We prove the interchange laws for the HOL types @{type int}, @{type rat} and
+  @{type real}, as well as the corresponding @{type option} types of those. We
+  note that the law does not hold for type @{type nat}, although a weaker
+  version using \<open>\<le>\<close> instead of equality is provable because Isabelle/HOL
+  interprets the minus operators as monus on natural numbers.
 \<close>
 
--- \<open>Note that the law does not hold for type @{type nat}.\<close>
-
 interpretation icl_plus_minus_nat:
-  iclaw "TYPE(nat)" "op =" "op +" "op -"
+  iclaw "TYPE(nat)" "op =" "op -" "op +"
 apply (unfold_locales)
 apply (linarith?)
 oops
 
+interpretation icl_plus_minus_nat:
+  iclaw "TYPE(nat)" "op \<le>" "op -" "op +"
+apply (unfold_locales)
+apply (linarith)
+oops
+
+interpretation icl_plus_minus_nat_option:
+  iclaw "TYPE(nat option)" "op \<le>\<^sub>?" "op -\<^sub>?" "op +\<^sub>?"
+apply (unfold_locales)
+apply (option_tac)
+done
+
 interpretation icl_plus_minus_int:
-  iclaw "TYPE(int)" "op =" "op +" "op -"
+  iclaw "TYPE(int)" "op =" "op -" "op +"
 apply (unfold_locales)
 apply (linarith)
 done
 
 interpretation icl_plus_minus_rat:
-  iclaw "TYPE(rat)" "op =" "op +" "op -"
+  iclaw "TYPE(rat)" "op =" "op -" "op +"
 apply (unfold_locales)
 apply (linarith)
 done
 
 interpretation icl_plus_minus_real:
-  iclaw "TYPE(real)" "op =" "op +" "op -"
+  iclaw "TYPE(real)" "op =" "op -" "op +"
 apply (unfold_locales)
 apply (linarith)
 done
 
-text \<open>Corresponding ICL proofs for option types and strict operators.\<close>
+text \<open>Corresponding proofs for option types and strict operators.\<close>
 
 interpretation icl_plus_minus_int_option:
-  iclaw "TYPE(int option)" "op =\<^sub>?" "op +\<^sub>?" "op -\<^sub>?"
+  iclaw "TYPE(int option)" "op =\<^sub>?" "op -\<^sub>?" "op +\<^sub>?"
 apply (unfold_locales)
 apply (option_tac)
 done
 
 interpretation icl_plus_minus_rat_option:
-  iclaw "TYPE(rat option)" "op =\<^sub>?" "op +\<^sub>?" "op -\<^sub>?"
+  iclaw "TYPE(rat option)" "op =\<^sub>?" "op -\<^sub>?" "op +\<^sub>?"
 apply (unfold_locales)
 apply (option_tac)
 done
 
 interpretation icl_plus_minus_real_option:
-  iclaw "TYPE(real option)" "op =\<^sub>?" "op +\<^sub>?" "op -\<^sub>?"
+  iclaw "TYPE(real option)" "op =\<^sub>?" "op -\<^sub>?" "op +\<^sub>?"
 apply (unfold_locales)
 apply (option_tac)
 done
 
-subsection \<open>Arithmetic: multiplication (\<open>x\<close>) and division (\<open>/\<close>) of numbers.\<close>
+subsection \<open>Positive arithmetic: with multiplication (\<open>\<times>\<close>).\<close>
+
+interpretation icl_plus_times_nat:
+  iclaw "TYPE(nat)" "op \<le>" "op +" "op *"
+apply (unfold_locales)
+apply (simp add: distrib_left distrib_right)
+done
+
+interpretation icl_plus_times_nat_option:
+  iclaw "TYPE(nat option)" "op \<le>\<^sub>?" "op +\<^sub>?" "op *\<^sub>?"
+apply (unfold_locales)
+apply (option_tac)
+apply (simp add: distrib_left distrib_right)
+done
+
+subsection \<open>Arithmetic: multiplication (\<open>\<times>\<close>) and division (\<open>/\<close>) of numbers.\<close>
 
 text \<open>This is proved for @{type rat}, @{type real}, and option types thereof.\<close>
 
@@ -95,13 +123,54 @@ apply (unfold_locales)
 apply (option_tac)
 done
 
-interpretation icl_mult_div_real_real:
+interpretation icl_mult_div_real_option:
   iclaw "TYPE(real option)" "op =\<^sub>?" "op *\<^sub>?" "op /\<^sub>?"
 apply (unfold_locales)
 apply (option_tac)
 done
 
-text \<open>The theorem below holds for any @{class division_ring}...\<close>
+text \<open>
+  Theorem 1 likewise holds for @{type rat}ional and @{type real} numbers and
+  option types thereof.
+\<close>
+
+lemma Theorem1_rat:
+fixes p :: "rat"
+fixes q :: "rat"
+shows "(p / q) * q = (p * q) / q"
+apply (insert icl_mult_div_rat.interchange_law [of p q q 1])
+apply (unfold div_by_1 mult_1_right)
+apply (assumption)
+done
+
+lemma Theorem1_real:
+fixes p :: "real"
+fixes q :: "real"
+shows "(p / q) * q = (p * q) / q"
+apply (insert icl_mult_div_real.interchange_law [of p q q 1])
+apply (unfold div_by_1 mult_1_right)
+apply (assumption)
+done
+
+lemma Theorem1_rat_option:
+fixes p :: "rat option"
+fixes q :: "rat option"
+shows "(p /\<^sub>? q) *\<^sub>? q = (p *\<^sub>? q) /\<^sub>? q"
+apply (insert icl_mult_div_rat_option.interchange_law [of p q q 1])
+apply (unfold div_by_1_option mult_1_right_option)
+apply (case_tac p; case_tac q; option_tac)
+done
+
+lemma Theorem1_real_option:
+fixes p :: "real option"
+fixes q :: "real option"
+shows "(p /\<^sub>? q) *\<^sub>? q = (p *\<^sub>? q) /\<^sub>? q"
+apply (insert icl_mult_div_real_option.interchange_law [of p q q 1])
+apply (unfold div_by_1_option mult_1_right_option)
+apply (case_tac p; case_tac q; option_tac)
+done
+
+text \<open>It also holds, more generally, in any division ring.\<close>
 
 context division_ring
 begin
@@ -113,59 +182,64 @@ apply (metis eq_divide_eq mult_eq_0_iff)
 done
 end
 
-text \<open>... and hence for @{type rat}ional and @{type real} numbers.\<close>
+subsection \<open>Positive integers: with truncated division (\<open>\<div>\<close>).\<close>
 
-lemma rat_div_mult_exchange:
-fixes p :: "rat"
-fixes q :: "rat"
-shows "(p / q) * q = (p * q) / q"
-apply (rule div_mult_exchange)
-done
+text \<open>
+  By default, @{term "x div y"} is also used for truncated (integer) division
+  in Isabelle/HOL. Hence, we first introduce a neat syntax \<open>x \<div> y\<close> consistent
+  with our notation in the paper. This is done via @{command abbreviation}.
+\<close>
 
-lemma real_div_mult_exchange:
-fixes p :: "real"
-fixes q :: "real"
-shows "(p / q) * q = (p * q) / q"
-apply (rule div_mult_exchange)
-done
+abbreviation trunc_div :: "nat binop" (infixl "\<div>" 70) where
+"x \<div> y \<equiv> x div y"
 
-subsection \<open>Natural numbers: multiplication (\<open>x\<close>) and truncated division (\<open>-:-\<close>).\<close>
-
-text \<open>We note that @{term "x div y"} is used in Isabelle for truncated division.\<close>
-
-text \<open>We first prove the lemma below which is also described in the paper.\<close>
-
-lemma nat_div_mult_leq:
-fixes p :: "nat"
-fixes q :: "nat"
--- {* The assumption \<open>q > 0\<close> is not needed because of \<open>x div 0 = 0\<close>. *}
-shows "(p div q) * q \<le> (p * q) div q"
-apply (case_tac "q > 0")
-apply (metis div_mult_self_is_m mult.commute split_div_lemma)
-apply (simp)
-done
+abbreviation trunc_div_option :: "nat option binop" (infixl "\<div>\<^sub>?" 70) where
+"x \<div>\<^sub>? y \<equiv> x /\<^sub>? y"
 
 text \<open>
   Since Isabelle/HOL defines \<open>x div 0 = 0\<close>, we can prove the interchange law
-  even in HOL's weak treatment of undefinedness, as well as our strong one.
+  even in HOL's weak treatment of undefinedness, as well as in the strong one.
 \<close>
 
 interpretation icl_mult_trunc_div_nat:
-  iclaw "TYPE(nat)" "op \<le>" "op *" "op div"
+  iclaw "TYPE(nat)" "op \<le>" "op *" "op \<div>"
 apply (unfold_locales)
 apply (case_tac "r = 0"; simp_all)
 apply (case_tac "s = 0"; simp_all)
 apply (subgoal_tac "(p div r) * (q div s) * (r * s) \<le> p * q")
 apply (metis div_le_mono div_mult_self_is_m nat_0_less_mult_iff)
 apply (unfold semiring_normalization_rules(13))
-apply (metis div_mult_self_is_m mult_le_mono nat_div_mult_leq)
+apply (metis mult.commute mult_le_mono split_div_lemma)
 done
 
 interpretation icl_mult_trunc_div_nat_option:
-  iclaw "TYPE(nat option)" "op \<le>\<^sub>?" "op *\<^sub>?" "op /\<^sub>?"
+  iclaw "TYPE(nat option)" "op \<le>\<^sub>?" "op *\<^sub>?" "op \<div>\<^sub>?"
 apply (unfold_locales)
 apply (option_tac)
 apply (rule icl_mult_trunc_div_nat.interchange_law)
+done
+
+text \<open>
+  With the above, we prove Theorem 2 in the paper, both for natural numbers
+  and the option type over naturals.
+\<close>
+
+lemma Theorem2:
+fixes p :: "nat"
+fixes q :: "nat"
+shows "(p \<div> q) * q \<le> (p * q) \<div> q"
+apply (insert icl_mult_trunc_div_nat.interchange_law [of p q q 1])
+apply (unfold div_by_1 mult_1_right)
+apply (assumption)
+done
+
+lemma Theorem2_option:
+fixes p :: "nat option"
+fixes q :: "nat option"
+shows "(p \<div>\<^sub>? q) *\<^sub>? q \<le> (p *\<^sub>? q) \<div>\<^sub>? q"
+apply (insert icl_mult_trunc_div_nat_option.interchange_law [of p q q 1])
+apply (unfold div_by_1_option mult_1_right_option)
+apply (case_tac p; case_tac q; option_tac)
 done
 
 subsection \<open>Propositional calculus: conjunction (\<open>\<and>\<close>) and implication (\<open>\<Rightarrow>\<close>).\<close>
@@ -178,14 +252,20 @@ lemma "(p \<longrightarrow> q) \<equiv> (\<not> p \<or> q)"
 apply (auto)
 done
 
-text \<open>We note that \<open>\<turnstile>\<close> is encoded by object-logic implication (\<open>\<longrightarrow>\<close>).\<close>
+text \<open>
+  This instance of the interchange law cannot be proved by way of interpreting
+  the @{locale iclaw} locale because rule implication is not an object-logic
+  operator. Nonetheless, we can prove the interchange law as an Isabelle/HOL
+  proof rule. We note that Isabelle uses \<open>\<longrightarrow>\<close> for implication and \<open>\<Longrightarrow>\<close> for
+  meta-level (rule) implication. To make the theorem look as in the paper, we
+  temporarily change the syntax of those operators.
+\<close>
 
-definition turnstile :: "bool \<Rightarrow> bool \<Rightarrow> bool" (infix "\<turnstile>" 50) where
-[iff]: "turnstile p q \<equiv> p \<longrightarrow> q"
+notation HOL.implies (infixr "\<Rightarrow>" 25)
+notation Pure.imp    (infixr "\<turnstile>" 1)
 
-interpretation icl_imp_conj:
-  iclaw "TYPE(bool)" "op \<longrightarrow>" "op \<and>" "op \<turnstile>"
-apply (unfold_locales)
+lemma icl_conj_imp_prop:
+"(p \<Rightarrow> q) \<and> (r \<Rightarrow> s) \<turnstile> (p \<and> r) \<Rightarrow> (q \<and> s)"
 apply (auto)
 done
 
@@ -210,6 +290,13 @@ apply (induct_tac p; induct_tac q)
 apply (simp_all)
 done
 
+interpretation preorder_numOrdBool:
+  preorder "TYPE(bool)" "numOrdBool"
+apply (unfold_locales)
+apply (unfold numOrdBool_is_imp)
+apply (auto)
+done
+
 text \<open>Note that \<open>;\<close> is \<open>\<or>\<close> and \<open>|\<close> is \<open>\<and>\<close>.\<close>
 
 interpretation icl_boolean_algebra:
@@ -219,7 +306,21 @@ apply (unfold numOrdBool_is_imp)
 apply (auto)
 done
 
-subsection \<open>Self-interchanging operators: \<open>+\<close>, \<open>*\<close>, \<open>\<or>\<close>, \<open>\<and>\<close>.\<close>
+text \<open>Theorem 3 once again needs to be formulated as an Isabelle proof rule.\<close>
+
+lemma Theorem3:
+"q \<and> s \<turnstile> q \<or> s"
+apply (auto)
+done
+
+no_notation HOL.implies (infixr "\<Rightarrow>" 25)
+no_notation Pure.imp    (infixr "\<turnstile>" 1)
+
+(***********************)
+(* REVIEWED UNTIL HERE *)
+(***********************)
+
+subsection \<open>Self-interchanging operators: \<open>+\<close>, \<open>\<times>\<close>, \<open>\<or>\<close>, \<open>\<and>\<close>.\<close>
 
 text \<open>For convenience, we define a locale for self-interchanging operators.\<close>
 
@@ -247,17 +348,24 @@ locale has_unit =
   assumes left_unit [simp]: "\<^bold>1 \<^bold>\<circ> x = x"
   assumes right_unit [simp]: "x \<^bold>\<circ> \<^bold>1 = x"
 
-text \<open>Finally, we can set to prove the laws in the paper.\<close>
+text \<open>
+  We first show that any associative and commuting operator self-interchanges.
+\<close>
 
-lemma assoc_comm_imp_self_iclaw:
-"(associative bop \<and> commutative bop) \<Longrightarrow> (self_iclaw bop)"
+lemma assoc_comm_self_iclaw:
+"(associative bop) \<and> (commutative bop) \<Longrightarrow> (self_iclaw bop)"
 apply (unfold_locales)
 apply (unfold associative_def commutative_def)
 apply (clarify)
 apply (auto)
 done
 
-lemma self_iclaw_and_unit_imp_assoc:
+text \<open>
+  We next show that self-interchanging operators with a unit are associative
+  and commute (Theorem 4).
+\<close>
+
+lemma Theorem4_assoc:
 "(self_iclaw bop) \<and> (has_unit bop one) \<Longrightarrow> associative bop"
 apply (unfold_locales)
 apply (unfold self_iclaw_def iclaw_def iclaw_axioms_def)
@@ -269,7 +377,7 @@ apply (drule_tac x = "z" in spec)
 apply (simp add: has_unit_def)
 done
 
-lemma self_iclaw_and_unit_imp_comm:
+lemma Theorem4_commute:
 "(self_iclaw bop) \<and> (has_unit bop one) \<Longrightarrow> commutative bop"
 apply (unfold_locales)
 apply (unfold self_iclaw_def iclaw_def iclaw_axioms_def)
@@ -285,7 +393,7 @@ text \<open>Lastly, we prove the self-interchange law for \<open>+\<close>, \<op
 
 interpretation self_icl_plus:
   self_iclaw "TYPE('a::comm_monoid_add)" "op +"
-apply (rule assoc_comm_imp_self_iclaw)
+apply (rule assoc_comm_self_iclaw)
 apply (rule conjI)
 -- {* Subgoal 1 *}
 apply (unfold associative_def)
@@ -297,7 +405,7 @@ done
 
 interpretation self_icl_mult:
   self_iclaw "TYPE('a::comm_monoid_mult)" "op *"
-apply (rule assoc_comm_imp_self_iclaw)
+apply (rule assoc_comm_self_iclaw)
 apply (rule conjI)
 -- {* Subgoal 1 *}
 apply (unfold associative_def)
@@ -309,7 +417,7 @@ done
 
 interpretation self_icl_conj:
   self_iclaw "TYPE(bool)" "op \<and>"
-apply (rule assoc_comm_imp_self_iclaw)
+apply (rule assoc_comm_self_iclaw)
 apply (rule conjI)
 -- {* Subgoal 1 *}
 apply (standard) [1]
@@ -321,7 +429,7 @@ done
 
 interpretation self_icl_disj:
   self_iclaw "TYPE(bool)" "op \<or>"
-apply (rule assoc_comm_imp_self_iclaw)
+apply (rule assoc_comm_self_iclaw)
 apply (rule conjI)
 -- {* Subgoal 1 *}
 apply (standard) [1]
@@ -329,6 +437,66 @@ apply (blast)
 -- {* Subgoal 2 *}
 apply (standard) [1]
 apply (blast)
+done
+
+text \<open>In addition, we can also show self-interchanging of \<open>+\<^sub>?\<close> and \<open>*\<^sub>?\<close>.\<close>
+
+interpretation self_icl_plus_option:
+  self_iclaw "TYPE('a::comm_monoid_add option)" "op +\<^sub>?"
+apply (rule assoc_comm_self_iclaw)
+apply (rule conjI)
+-- {* Subgoal 1 *}
+apply (unfold associative_def)
+apply (option_tac)
+apply (simp add: add.assoc)
+-- {* Subgoal 2 *}
+apply (option_tac)
+apply (unfold commutative_def)
+apply (option_tac)
+apply (simp add: add.commute)
+done
+
+interpretation self_icl_mult_option:
+  self_iclaw "TYPE('a::comm_monoid_mult option)" "op *\<^sub>?"
+apply (rule assoc_comm_self_iclaw)
+apply (rule conjI)
+-- {* Subgoal 1 *}
+apply (unfold associative_def)
+apply (option_tac)
+apply (simp add: mult.assoc)
+-- {* Subgoal 2 *}
+apply (unfold commutative_def)
+apply (option_tac)
+apply (simp add: mult.commute)
+done
+
+subsection \<open>Note: Partial operators.\<close>
+
+text \<open>TO: This validates the cancellation law in the algebra of Section 4.\<close>
+
+text \<open>
+  Note that the below could even be proved if removing the assumption \<open>0 < q\<close>.
+  The reason for this is that in Isabelle/HOL, division by zero is defined to
+  be zero. Below we, however, conduct the prove not exploiting that fact.
+\<close>
+
+lemma trunc_div_mult_cancel:
+fixes p :: "nat"
+fixes q :: "nat"
+assumes "0 < q"
+shows "(p \<div> q) * q \<le> p"
+apply (insert Theorem2 [of p q])
+apply (erule order_trans)
+apply (simp)
+done
+
+lemma trunc_div_mult_cancel_option:
+fixes p :: "nat option"
+fixes q :: "nat option"
+shows "(p \<div>\<^sub>? q) *\<^sub>? q \<le> p"
+apply (induction p; induction q; option_tac)
+apply (rename_tac q p)
+apply (erule trunc_div_mult_cancel)
 done
 
 subsection \<open>Computer arithmetic: Overflow (\<open>\<top>\<close>).\<close>
@@ -417,13 +585,9 @@ apply (meson dual_order.trans icl_mult_trunc_div_nat.interchange_law)
 using div_le_dividend dual_order.trans apply (blast)
 done
 
-subsection \<open>Note: Partial operators.\<close>
-
-text \<open>Partial operators are formalised in a separate theory \<open>Partiality\<close>.\<close>
-
 subsection \<open>Sets: union (\<open>\<union>\<close>) and disjoint union (\<open>+\<close>) of sets, ordered by inclusion \<open>\<subseteq>\<close>.\<close>
 
-text \<open>Talk to Tony and Georg about the failed proof below! [TODO]\<close>
+text \<open>Proof of the below relies on @{term "\<bottom> \<subseteq>\<^sub>? A"} for any \<open>A\<close>.\<close>
 
 interpretation preorder_option_subset:
   iclaw "TYPE('a set option)" "(op \<subseteq>\<^sub>?)" "op \<oplus>\<^sub>?" "op \<union>\<^sub>?"
@@ -431,7 +595,6 @@ apply (unfold_locales)
 apply (rename_tac p q r s)
 apply (option_tac)
 apply (auto)
--- {* Cannot be proved unless we change the definition of @{term "op \<subseteq>\<^sub>?"}! *}
 oops
 
 text \<open>RE: Disjoint union has a unit \<open>{}\<close>, and so it interchanges with itself.\<close>
@@ -455,7 +618,7 @@ text \<open>
   \<open>p = \<bottom>\<close> or \<open>p = \<top>\<close>
 \<close>
 
-text \<open>Use the type @{type partial} to prove this also for \<open>\<top>\<close>. [TODO]\<close>
+text \<open>TODO: Use the type @{type partial} to prove this also for \<open>\<top>\<close>.\<close>
 
 lemma [rule_format]:
 "\<forall>p. p \<oplus>\<^sub>? p = p \<longleftrightarrow> (p = \<bottom> \<or> p = Some {})"
@@ -465,36 +628,85 @@ done
 subsection \<open>Note: Variance of operators, covariant (\<open>+\<close>,\<open>\<and>\<close>, \<open>\<or>\<close>) and contravariant (\<open>-\<close>, \<open>\<and>\<close>, \<open>\<Leftarrow>\<close>)\<close>
 
 text \<open>
-  We introduce the properties of covariance and contravariance via two locales.
-  The underlying ordering has to be a @{locale preorder} in both cases.
+  We introduce the property of covariance and contravariance via locales.
+  For covariance, we have a single locale; and for contravariance, three
+  different locales to account for all possible combinations.
 \<close>
 
 locale covariant = preorder +
   fixes cov_op :: "'a binop" (infixr "cov" 100)
-  assumes covariant: "x \<^bold>\<le> x' \<Longrightarrow> y \<^bold>\<le> y' \<Longrightarrow> (x cov y) \<^bold>\<le> (x' cov y')"
+  assumes cov_rule: "x \<^bold>\<le> x' \<and> y \<^bold>\<le> y' \<Longrightarrow> (x cov y) \<^bold>\<le> (x' cov y')"
 
 text \<open>We consider contravariance in the first, second or both operators.\<close>
 
 locale contravariant = preorder +
-  fixes ctv_op :: "'a binop" (infixr "ctv" 100)
-  assumes contravariant: "x' \<^bold>\<le> x \<Longrightarrow> y' \<^bold>\<le> y \<Longrightarrow> (x ctv y) \<^bold>\<le> (x' ctv y')"
+  fixes cot_op :: "'a binop" (infixr "cot" 100)
+  assumes cot_rule: "x' \<^bold>\<le> x \<and> y' \<^bold>\<le> y \<Longrightarrow> (x cot y) \<^bold>\<le> (x' cot y')"
 
 locale contravariant1 = preorder +
-  fixes ctv_op :: "'a binop" (infixr "ctv" 100)
-  assumes contravariant: "x' \<^bold>\<le> x \<Longrightarrow> y \<^bold>\<le> y' \<Longrightarrow> (x ctv y) \<^bold>\<le> (x' ctv y')"
+  fixes cot_op :: "'a binop" (infixr "cot" 100)
+  assumes cot_rule1: "x' \<^bold>\<le> x \<and> y \<^bold>\<le> y' \<Longrightarrow> (x cot y) \<^bold>\<le> (x' cot y')"
 
 locale contravariant2 = preorder +
-  fixes ctv_op :: "'a binop" (infixr "ctv" 100)
-  assumes contravariant: "x \<^bold>\<le> x' \<Longrightarrow> y' \<^bold>\<le> y \<Longrightarrow> (x ctv y) \<^bold>\<le> (x' ctv y')"
+  fixes cot_op :: "'a binop" (infixr "cot" 100)
+  assumes cot_rule2: "x \<^bold>\<le> x' \<and> y' \<^bold>\<le> y \<Longrightarrow> (x cot y) \<^bold>\<le> (x' cot y')"
+
+text \<open>Note that if the ordering is equality, all operators are covariant.\<close>
+
+interpretation covariant_equality:
+  covariant "TYPE('a)" "op =" "f::'a binop"
+apply (intro_locales)
+apply (unfold covariant_axioms_def)
+apply (clarsimp)
+done
+
+interpretation contravariant_equality:
+  contravariant "TYPE('a)" "op =" "f::'a binop"
+apply (intro_locales)
+apply (unfold contravariant_axioms_def)
+apply (clarsimp)
+done
+
+interpretation contravariant1_equality:
+  contravariant1 "TYPE('a)" "op =" "f::'a binop"
+apply (intro_locales)
+apply (unfold contravariant1_axioms_def)
+apply (clarsimp)
+done
+
+interpretation contravariant2_equality:
+  contravariant2 "TYPE('a)" "op =" "f::'a binop"
+apply (intro_locales)
+apply (unfold contravariant2_axioms_def)
+apply (clarsimp)
+done
 
 text \<open>
-  We prove covariance of \<open>+\<close> for @{type nat}ural, @{type int}eger,
+  Below, we prove covariance of \<open>+\<close> for @{type nat}ural, @{type int}eger,
   @{type rat}ional and @{type real} numbers, as well as extensions of those
-  types incorporating undefined results.
+  types with \<open>\<bottom>\<close>.
 \<close>
 
 interpretation covariant_plus_nat:
   covariant "TYPE(nat)" "op \<le>" "op +"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation covariant_plus_int:
+  covariant "TYPE(int)" "op \<le>" "op +"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation covariant_plus_rat:
+  covariant "TYPE(rat)" "op \<le>" "op +"
+apply (unfold_locales)
+apply (linarith)
+done
+
+interpretation covariant_plus_real:
+  covariant "TYPE(real)" "op \<le>" "op +"
 apply (unfold_locales)
 apply (linarith)
 done
@@ -505,22 +717,10 @@ apply (unfold_locales)
 apply (option_tac)
 done
 
-interpretation covariant_plus_int:
-  covariant "TYPE(int)" "op \<le>" "op +"
-apply (unfold_locales)
-apply (linarith)
-done
-
 interpretation covariant_plus_int_option:
   covariant "TYPE(int option)" "op \<le>\<^sub>?" "op +\<^sub>?"
 apply (unfold_locales)
 apply (option_tac)
-done
-
-interpretation covariant_plus_rat:
-  covariant "TYPE(rat)" "op \<le>" "op +"
-apply (unfold_locales)
-apply (linarith)
 done
 
 interpretation covariant_plus_rat_option:
@@ -529,17 +729,13 @@ apply (unfold_locales)
 apply (option_tac)
 done
 
-interpretation covariant_plus_real:
-  covariant "TYPE(real)" "op \<le>" "op +"
-apply (unfold_locales)
-apply (linarith)
-done
-
 interpretation covariant_plus_real_option:
   covariant "TYPE(real option)" "op \<le>\<^sub>?" "op +\<^sub>?"
 apply (unfold_locales)
 apply (option_tac)
 done
+
+text \<open>Covariance of conjunction and disjunction with respect to implication.\<close>
 
 interpretation covariant_conj:
   covariant "TYPE(bool)" "op \<longrightarrow>" "op \<and>"
@@ -557,7 +753,7 @@ text \<open>
   We prove contravariance in the right operator of \<open>-\<close> for @{type nat}ural,
   @{type int}eger, @{type rat}ional and @{type real} numbers. We note that
   contravariance does not hold for their respective @{type option} types. A
-  counter examples is where \<open>y' = \<bottom>\<close> in \<open>(x ctv y) \<^bold>\<le> (x' ctv y')\<close> with all
+  counter examples is where \<open>y' = \<bottom>\<close> in \<open>(x cov y) \<^bold>\<le> (x' cov y')\<close> with all
   other quantities defined.
 \<close>
 
@@ -598,6 +794,7 @@ text \<open>
 interpretation contravariant2_nat:
   contravariant2 "TYPE(nat)" "op \<le>" "op div"
 apply (unfold_locales)
+apply (clarify)
 apply (subgoal_tac "x div y \<le> x div y'")
 apply (erule order_trans)
 apply (erule div_le_mono)
@@ -608,6 +805,7 @@ oops
 interpretation contravariant2_rat:
   contravariant2 "TYPE(rat)" "op \<le>" "op /"
 apply (unfold_locales)
+apply (clarify)
 apply (subgoal_tac "x / y \<le> x / y'")
 apply (erule order_trans)
 apply (erule divide_right_mono) defer
@@ -626,6 +824,8 @@ apply (erule div_le_mono)
 apply (erule div_le_mono2)
 apply (assumption)
 oops
+
+text \<open>Contravariance in the second operators holds for reverse implication.\<close>
 
 interpretation contravariant_ref_implies:
   contravariant2 "TYPE(bool)" "op \<longrightarrow>" "op \<longleftarrow>"
@@ -650,7 +850,7 @@ text \<open>
   system of HOL. An inductive proof would have to proceed at the meta-level.
 \<close>
 
-subsection \<open>Strings of characters: catenation (\<open>;\<close>) interleaving \<open>|\<close> and empty string (\<open>\<epsilon>\<close>).\<close>
+subsection \<open>Strings of characters: catenation (\<open>;\<close>) interleaving (\<open>|\<close>) and empty string (\<open>\<epsilon>\<close>).\<close>
 
 text \<open>We first define a datatype to formalise the syntax of our string algebra.\<close>
 

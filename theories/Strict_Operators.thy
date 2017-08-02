@@ -77,7 +77,7 @@ text \<open>
 fun subset_option :: "'a set option \<Rightarrow> 'a set option \<Rightarrow> bool" (infix "\<subseteq>\<^sub>?" 50) where
 "Some x \<subseteq>\<^sub>? Some y \<longleftrightarrow> x \<subseteq> y" |
 "Some x \<subseteq>\<^sub>? None \<longleftrightarrow> (*True*) False" |
-"None \<subseteq>\<^sub>? Some y \<longleftrightarrow> (*True*) False" |
+"None \<subseteq>\<^sub>? Some y \<longleftrightarrow> (*False*) True" |
 "None \<subseteq>\<^sub>? None \<longleftrightarrow> True"
 
 subsection {* Generic Lifting *}
@@ -149,6 +149,21 @@ declare times_option_def [option_ops]
 declare divide_option_def [option_ops]
 declare union_option_def [option_ops]
 declare disjoint_union_def [option_ops]
+
+subsection {* Supplementary Laws *}
+
+lemma div_by_1_option [simp]:
+fixes a :: "'a::semidom_divide option"
+shows "a /\<^sub>? 1 = a"
+apply (option_tac)
+done
+
+lemma mult_1_right_option [simp]:
+fixes a :: "'a::monoid_mult option"
+shows "a *\<^sub>? 1 = a"
+apply (option_tac)
+apply (induct_tac a; clarsimp)
+done
 
 subsection {* ICL Interpretations *}
 
