@@ -241,9 +241,16 @@ apply (simp add: mult_left_mono)
 apply (simp add: mult_right_mono)
 done
 
-interpretation icl_pos_semiring_0:
+interpretation icl_plus_times_pos:
   iclaw "TYPE('a::ordered_semiring_0 pos)" "op \<le>" "op +" "op *"
 apply (unfold_locales)
+done
+
+interpretation icl_plus_times_pos_option:
+  iclaw "TYPE('a::ordered_semiring_0 pos option)" "op \<le>\<^sub>?" "op +\<^sub>?" "op *\<^sub>?"
+apply (unfold_locales)
+apply (option_tac)
+apply (rule icl_positive_semiring.interchange_law)
 done
 
 interpretation icl_plus_times_pos_int:
@@ -258,6 +265,21 @@ done
 
 interpretation icl_plus_times_pos_real:
   iclaw "TYPE(real pos)" "op \<le>" "op +" "op *"
+apply (unfold_locales)
+done
+
+interpretation icl_plus_times_pos_int_option:
+  iclaw "TYPE(int pos option)" "op \<le>\<^sub>?" "op +\<^sub>?" "op *\<^sub>?"
+apply (unfold_locales)
+done
+
+interpretation icl_plus_times_pos_rat_option:
+  iclaw "TYPE(rat pos option)" "op \<le>\<^sub>?" "op +\<^sub>?" "op *\<^sub>?"
+apply (unfold_locales)
+done
+
+interpretation icl_plus_times_pos_real_option:
+  iclaw "TYPE(real pos option)" "op \<le>\<^sub>?" "op +\<^sub>?" "op *\<^sub>?"
 apply (unfold_locales)
 done
 
