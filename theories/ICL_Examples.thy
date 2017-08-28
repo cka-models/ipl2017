@@ -101,6 +101,166 @@ apply (option_tac)
 apply (simp add: distrib_left distrib_right)
 done
 
+interpretation icl_plus_times_nat_option:
+  iclaw "TYPE(int)" "op \<le>" "op +" "op *"
+apply (unfold_locales)
+apply (subgoal_tac "p \<ge> 0 \<and> r \<ge> 0 \<and> q \<ge> 0 \<and> s \<ge> 0")
+-- {* Subgoal 1 *}
+apply (clarify)
+apply (unfold ring_distribs)
+apply (unfold sym [OF add.assoc])
+apply (simp)
+oops
+
+text \<open>
+  We note that the law can be proved more generally to hold in any (ordered)
+  @{class semiring} in which @{term 0} is the least element. To mechanically
+  verify this result, it is useful to introduce a type class that guarantees
+  that all elements of a type are positive.
+\<close>
+
+class positive = zero + ord +
+  assumes zero_least: "0 \<le> x"
+
+interpretation icl_positive_semiring:
+  iclaw "TYPE('a::{positive,ordered_semiring})" "op \<le>" "op +" "op *"
+apply (unfold_locales)
+apply (simp add: distrib_left distrib_right)
+apply (metis add.right_neutral add_increasing add_mono order_refl zero_least)
+done
+
+text \<open>Clearly, all elements of the type @{type nat} are positive.\<close>
+
+instance nat :: positive
+apply (intro_classes)
+apply (simp)
+done
+
+text \<open>
+  For other number types, such as @{type int}eger, @{type rat}ional and
+  @{type real} numbers, we introduce a subtype \<open>'a pos\<close> that includes only the
+  positive individuals of some type @{typ "'a"}. In order to establish the
+  non-emptiness caveat of the type definition, we require that the ordering be
+  a @{class preorder}.
+\<close>
+
+typedef (overloaded) 'a::"{zero, preorder}" pos = "{x::'a. 0 \<le> x}"
+apply (clarsimp)
+apply (rule_tac x = "0" in exI)
+apply (rule order_refl)
+done
+
+setup_lifting type_definition_pos
+
+text \<open>We next lift `\<open>\<le>\<close>', `\<open>0\<close>', `\<open>+\<close>' and `\<open>*\<close>' into the new type @{type pos}.\<close>
+
+instantiation pos :: ("{zero,preorder}") preorder
+begin
+lift_definition less_eq_pos :: "'a pos \<Rightarrow> 'a pos \<Rightarrow> bool"
+is "op \<le>" .
+lift_definition less_pos :: "'a pos \<Rightarrow> 'a pos \<Rightarrow> bool"
+is "op <" .
+instance
+apply (intro_classes; transfer)
+using less_le_not_le apply (blast)
+using order_refl apply (blast)
+using order_trans apply (blast)
+done
+end
+
+instantiation pos :: ("{zero,preorder}") zero
+begin
+lift_definition zero_pos :: "'a pos"
+is "0" by (rule order_refl)
+instance ..
+end
+
+text \<open>
+  We note that for the lifting of `\<open>+\<close>' and `\<open>*\<close>', we require closure of those
+  operators under positive numbers. Such is, however, provable within ordered
+  semi-rings, as we establish later on.
+\<close>
+
+class plus_pos_cl = zero + ord + plus +
+  assumes plus_pos_closure: "0 \<le> x \<Longrightarrow> 0 \<le> y \<Longrightarrow> 0 \<le> x + y"
+
+class times_pos_cl = zero + ord + times +
+  assumes times_pos_closure: "0 \<le> x \<Longrightarrow> 0 \<le> y \<Longrightarrow> 0 \<le> x * y"
+
+instantiation pos :: ("{zero,preorder,plus_pos_cl}") plus
+begin
+lift_definition plus_pos :: "'a pos \<Rightarrow> 'a pos \<Rightarrow> 'a pos"
+is "op +" by (rule plus_pos_closure)
+instance ..
+end
+
+instantiation pos :: ("{zero,preorder,times_pos_cl}") times
+begin
+lift_definition times_pos :: "'a pos \<Rightarrow> 'a pos \<Rightarrow> 'a pos"
+is "op *" by (rule times_pos_closure)
+instance ..
+end
+
+text \<open>
+  We prove that the above closure property of `\<open>+\<close>' and `\<open>*\<close>' wrt the positive
+  individuals holds within any (ordered) semi-ring.
+\<close>
+
+subclass (in ordered_semiring) plus_pos_cl
+apply (unfold class.plus_pos_cl_def)
+using local.add_nonneg_nonneg by (blast)
+
+subclass (in ordered_semiring_0) times_pos_cl
+apply (unfold class.times_pos_cl_def)
+using local.mult_nonneg_nonneg by (blast)
+
+text \<open>
+  Lastly, we prove that subtype @{typ "'a pos"} over some (ordered) semi-ring
+  is itself and ordered semi-ring, albeit comprising positive elements only.
+  With the earlier interpretation proof, namely for \<open>icl_positive_semiring\<close>,
+  this implies that the interchange law holds for positive arithmetic with
+  multiplication within any (ordered) semi-ring, including positive rational
+  and real numbers.
+\<close>
+
+instance pos :: ("{zero, preorder}") positive
+apply (intro_classes)
+apply (transfer)
+apply (assumption)
+done
+
+instance pos :: (ordered_semiring_0) ordered_semiring
+apply (intro_classes; transfer'; simp?)
+apply (simp add: add.assoc)
+apply (simp add: add.commute)
+apply (simp add: add_left_mono)
+apply (simp add: mult.assoc)
+apply (simp add: distrib_right)
+apply (simp add: distrib_left)
+apply (simp add: mult_left_mono)
+apply (simp add: mult_right_mono)
+done
+
+interpretation icl_pos_semiring_0:
+  iclaw "TYPE('a::ordered_semiring_0 pos)" "op \<le>" "op +" "op *"
+apply (unfold_locales)
+done
+
+interpretation icl_plus_times_pos_int:
+  iclaw "TYPE(int pos)" "op \<le>" "op +" "op *"
+apply (unfold_locales)
+done
+
+interpretation icl_plus_times_pos_rat:
+  iclaw "TYPE(rat pos)" "op \<le>" "op +" "op *"
+apply (unfold_locales)
+done
+
+interpretation icl_plus_times_pos_real:
+  iclaw "TYPE(real pos)" "op \<le>" "op +" "op *"
+apply (unfold_locales)
+done
+
 subsection \<open>Arithmetic: multiplication (\<open>\<times>\<close>) and division (\<open>/\<close>) of numbers.\<close>
 
 text \<open>This is proved for @{type rat}, @{type real}, and option types thereof.\<close>
@@ -113,6 +273,12 @@ done
 
 interpretation icl_mult_div_real:
   iclaw "TYPE(real)" "op =" "op *" "op /"
+apply (unfold_locales)
+apply (simp)
+done
+
+interpretation icl_mult_div_field:
+  iclaw "TYPE('a::field)" "op =" "op *" "op /"
 apply (unfold_locales)
 apply (simp)
 done
@@ -315,10 +481,6 @@ done
 
 no_notation HOL.implies (infixr "\<Rightarrow>" 25)
 no_notation Pure.imp    (infixr "\<turnstile>" 1)
-
-(***********************)
-(* REVIEWED UNTIL HERE *)
-(***********************)
 
 subsection \<open>Self-interchanging operators: \<open>+\<close>, \<open>\<times>\<close>, \<open>\<or>\<close>, \<open>\<and>\<close>.\<close>
 
@@ -838,7 +1000,7 @@ text \<open>
   to Leibniz's law following from the axioms of the HOL kernel.
 \<close>
 
-subsection {* Note: Modularity, compositionality, locality, etc.*}
+subsection {* Note: Modularity, compositionality, locality, etc. *}
 
 text \<open>
   This proof could  be more involved in requiring inductive reasoning about
